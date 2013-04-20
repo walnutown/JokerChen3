@@ -58,16 +58,37 @@ vmarea_free(vmarea_t *vma)
 vmmap_t *
 vmmap_create(void)
 {
+        vmmap_t *newvmm = (vmmap_t *)slab_obj_alloc(vmmap_allocator);
+        if(newvmm) {
+                list_init(&newvmm->vmm_list);
+                newvmm->vmm_proc = NULL;
+        }
+        return newvmm;
+
+        /*
         NOT_YET_IMPLEMENTED("VM: vmmap_create");
         return NULL;
+        */
 }
-
+    
 /* Removes all vmareas from the address space and frees the
  * vmmap struct. */
 void
 vmmap_destroy(vmmap_t *map)
 {
+        KASSERT(NULL != map);
+
+        if(!list_empty(&map->vmm_list)) {
+                vmarea_t *iterator;
+                list_iterate_begin(&map->vmm_list, iterator, vmarea_t, vma_plink) {              
+                        vmarea_free(iterator);
+                } list_iterate_end();
+        }
+        slab_obj_free(vmmap_allocator, map);
+
+        /*
         NOT_YET_IMPLEMENTED("VM: vmmap_destroy");
+        */
 }
 
 /* Add a vmarea to an address space. Assumes (i.e. asserts to some extent)
@@ -77,7 +98,36 @@ vmmap_destroy(vmmap_t *map)
 void
 vmmap_insert(vmmap_t *map, vmarea_t *newvma)
 {
+        KASSERT(NULL != map);
+        KASSERT(NULL != newvma);
+    
+        if(!list_empty(&map->vmm_list)) {
+                uint32_t vma_start = newvma->vma_start;
+                vmarea_t *iterator;
+                list_iterate_begin(&map->vmm_list, iterator, vmarea_t, vma_plink) {              
+                        /* keep the areas sorted by the start of their virtual page ranges */
+                        if(vma_start > iterator->vma_start) {
+                                /* no two ranges overlap with each other */
+                                if(vma_start > iterator->vma_end) {
+                                        /* set the vma_vmmap for the area */
+                                        newvma->vma_vmmap = map;
+                                        list_insert_before((&iterator->vma_plink)->l_next, &newvma->vma_plink);
+                                        break;
+                                }
+                                else {
+                                        /* how to deal with overlap?! */
+                                        break;
+                                }
+                        }
+                } list_iterate_end();
+        }
+        else {
+            list_insert_head(&map->vmm_list, &newvma->vma_plink);
+        }
+
+        /*
         NOT_YET_IMPLEMENTED("VM: vmmap_insert");
+        */
 }
 
 /* Find a contiguous range of free virtual pages of length npages in
@@ -90,8 +140,17 @@ vmmap_insert(vmmap_t *map, vmarea_t *newvma)
 int
 vmmap_find_range(vmmap_t *map, uint32_t npages, int dir)
 {
+        KASSERT(NULL != map);
+
+        if(dir == VMMAP_DIR_HILO) {
+                /* page or address? */
+        }
+
+        return -1;
+        /*
         NOT_YET_IMPLEMENTED("VM: vmmap_find_range");
         return -1;
+        */
 }
 
 /* Find the vm_area that vfn lies in. Simply scan the address space
@@ -100,8 +159,21 @@ vmmap_find_range(vmmap_t *map, uint32_t npages, int dir)
 vmarea_t *
 vmmap_lookup(vmmap_t *map, uint32_t vfn)
 {
+        KASSERT(NULL != map);
+
+        if(!list_empty(&map->vmm_list)) {
+                vmarea_t *iterator;
+                list_iterate_begin(&map->vmm_list, iterator, vmarea_t, vma_plink) {              
+                        if(vfn >= iterator->vma_start && vfn <= iterator->vma_end) {
+                            return iterator;
+                        }
+                } list_iterate_end();
+        }
+        return NULL;
+        /*
         NOT_YET_IMPLEMENTED("VM: vmmap_lookup");
         return NULL;
+        */
 }
 
 /* Allocates a new vmmap containing a new vmarea for each area in the
@@ -111,8 +183,19 @@ vmmap_lookup(vmmap_t *map, uint32_t vfn)
 vmmap_t *
 vmmap_clone(vmmap_t *map)
 {
+        KASSERT(NULL != map);
+
+        vmmap_t *clonevmm = (vmmap_t *)slab_obj_alloc(vmmap_allocator);
+        clonevmm->vmm_proc = map->vmm_proc;
+
+        /* copy vmarea? */
+
+        return clonevmm;
+
+        /*
         NOT_YET_IMPLEMENTED("VM: vmmap_clone");
         return NULL;
+        */
 }
 
 /* Insert a mapping into the map starting at lopage for npages pages.
@@ -144,8 +227,12 @@ int
 vmmap_map(vmmap_t *map, vnode_t *file, uint32_t lopage, uint32_t npages,
           int prot, int flags, off_t off, int dir, vmarea_t **new)
 {
+
+        return -1;
+        /*
         NOT_YET_IMPLEMENTED("VM: vmmap_map");
         return -1;
+        */
 }
 
 /*
