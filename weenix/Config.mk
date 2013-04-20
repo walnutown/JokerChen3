@@ -45,7 +45,7 @@
           GETCWD=0 # getcwd(3) syscall-like functionality
         UPREEMPT=0 # userland preemption
              MTP=0 # multiple kernel threads per process
-         SHADOWD=0 # shadow page cleanup
+         SHADOWD=1 # shadow page cleanup
 
 # Boolean options specified in this specified in this file that should be
 # included as definitions at compile time

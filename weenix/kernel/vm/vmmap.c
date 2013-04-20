@@ -142,8 +142,26 @@ vmmap_find_range(vmmap_t *map, uint32_t npages, int dir)
 {
         KASSERT(NULL != map);
 
-        if(dir == VMMAP_DIR_HILO) {
-                /* page or address? */
+        if(!list_empty(&map->vmm_list)) {
+                vmarea_t *iterator;
+                int pages;
+                /* high to low */
+                if(dir == VMMAP_DIR_HILO) {
+                        /*** page or address? ***/
+                        list_iterate_reverse(&map->vmm_list, iterator, vmarea_t, vma_plink) {
+                                pages = iterator->vma_end - iterator->vma_start + 1;
+                                if(pages >= npages)
+                                        return iterator->vma_start;
+                        } list_iterate_end();
+                }
+                /* low to high */
+                if(dir == VMMAP_DIR_LOHI) {
+                        list_iterate_begin(&map->vmm_list, iterator, vmarea_t, vma_plink) {
+                                pages = iterator->vma_end - iterator->vma_start + 1;
+                                if(pages >= npages)
+                                        return iterator->vma_start;
+                        } list_iterate_end();
+                }
         }
 
         return -1;
