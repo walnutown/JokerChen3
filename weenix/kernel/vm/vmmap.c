@@ -278,12 +278,53 @@ vmmap_clone(vmmap_t *map)
  *
  * If 'new' is non-NULL a pointer to the new vmarea_t should be stored in it.
  */
+
 int
 vmmap_map(vmmap_t *map, vnode_t *file, uint32_t lopage, uint32_t npages,
           int prot, int flags, off_t off, int dir, vmarea_t **new)
 {
-
-        return -1;
+        int err;
+        if(lopage==0)
+        {
+            int vfn_start=vmmap_find_range(map,npages,dir);
+            if(vfn_start==-1)
+                return -1;
+            vmarea_t * newvma=vmarea_alloc();
+            newvma->vma_start=vfn_start;
+            newvma->vma_end=vfn_start+npages-1;
+        }
+        else if(lopage!=0)
+        {
+            if(!vmmap_is_range_empty(map,lopage,npages))
+            {
+                vmmap_remove(map, lopage, npages);
+                vmarea_t * newvma=vmarea_alloc();
+                newvma->vma_start=lopage;
+                newvma->vma_end=lopage+npages-1;
+            }
+        }
+        newvma->vma_prot=prot;
+        newvma->vma_flags=flags;
+        newvma->vma_vmmap=map;
+        vmmap_insert(map,newvma);
+        mmobj_t* obj;
+        if(file==NULL)
+        {
+            obj=anon_create();
+            if(obj==NULL)
+                return -1;
+        }
+        else 
+        {
+            if((err=mmap(file,newvma,&obj))<0)
+                return err;
+        }
+        newvma->vma_obj=obj;
+        if(MAP_PRIVATE)
+        {
+            newvma->vma_obj->mmo_shadowed=shadow_create();
+        }
+        return 0;
         /*
         NOT_YET_IMPLEMENTED("VM: vmmap_map");
         return -1;
@@ -322,8 +363,20 @@ vmmap_map(vmmap_t *map, vnode_t *file, uint32_t lopage, uint32_t npages,
 int
 vmmap_remove(vmmap_t *map, uint32_t lopage, uint32_t npages)
 {
-        NOT_YET_IMPLEMENTED("VM: vmmap_remove");
-        return -1;
+        if(!list_empty(&map->vmm_list)) 
+        {
+                vmarea_t *iterator;
+                list_iterate_begin(&map->vmm_list, iterator, vmarea_t, vma_plink) 
+                {              
+                        if(vfn >= iterator->vma_start && vfn <= iterator->vma_end) 
+                        {
+                            return iterator;
+                        }
+                } list_iterate_end();
+        }
+        
+        /*NOT_YET_IMPLEMENTED("VM: vmmap_remove");
+        return -1;*/
 }
 
 /*
