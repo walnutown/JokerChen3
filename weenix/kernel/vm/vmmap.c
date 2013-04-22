@@ -143,24 +143,52 @@ vmmap_find_range(vmmap_t *map, uint32_t npages, int dir)
         KASSERT(NULL != map);
 
         if(!list_empty(&map->vmm_list)) {
-                vmarea_t *iterator;
-                int pages;
+                /* vmarea_t *iterator; */
+                unsigned int pages;
                 /* high to low */
                 if(dir == VMMAP_DIR_HILO) {
                         /*** page or address? ***/
-                        list_iterate_reverse(&map->vmm_list, iterator, vmarea_t, vma_plink) {
+                        /*list_iterate_reverse(&map->vmm_list, iterator, vmarea_t, vma_plink) {
                                 pages = iterator->vma_end - iterator->vma_start + 1;
                                 if(pages >= npages)
                                         return iterator->vma_start;
-                        } list_iterate_end();
+                        } list_iterate_end();*/
+
+                        list_link_t *link;
+                        for (link = (&map->vmm_list)->l_prev; link != &map->vmm_list; link = link->l_prev) {
+                                if(link->l_prev != &map->vmm_list) {
+                                        vmarea_t *vma = list_item(link, vmarea_t, vma_plink);
+                                        vmarea_t *prev_vma = list_item(link->l_prev, vmarea_t, vma_plink);
+                                        pages = vma->vma_start - prev_vma->vma_end;
+                                        if(pages >= npages)
+                                                return prev_vma->vma_end + 1;
+                                }
+                                else {
+                                        break;
+                                }
+                        }
                 }
                 /* low to high */
                 if(dir == VMMAP_DIR_LOHI) {
-                        list_iterate_begin(&map->vmm_list, iterator, vmarea_t, vma_plink) {
+                        /*list_iterate_begin(&map->vmm_list, iterator, vmarea_t, vma_plink) {
                                 pages = iterator->vma_end - iterator->vma_start + 1;
                                 if(pages >= npages)
                                         return iterator->vma_start;
-                        } list_iterate_end();
+                        } list_iterate_end();*/
+
+                        list_link_t *link;
+                        for (link = (&map->vmm_list)->l_next; link != &map->vmm_list; link = link->l_next) {
+                                if(link->l_next != &map->vmm_list) {
+                                        vmarea_t *vma = list_item(link, vmarea_t, vma_plink);
+                                        vmarea_t *next_vma = list_item(link->l_next, vmarea_t, vma_plink);
+                                        pages = vma->vma_end - next_vma->vma_start;
+                                        if(pages >= npages)
+                                                return vma->vma_start + 1;
+                                }
+                                else {
+                                        break;
+                                }
+                        }
                 }
         }
 
