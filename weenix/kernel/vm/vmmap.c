@@ -111,18 +111,20 @@ vmmap_insert(vmmap_t *map, vmarea_t *newvma)
                                 if(vma_start > iterator->vma_end) {
                                         /* set the vma_vmmap for the area */
                                         newvma->vma_vmmap = map;
+                                        /*** need collapse? ***/
                                         list_insert_before((&iterator->vma_plink)->l_next, &newvma->vma_plink);
                                         break;
                                 }
                                 else {
-                                        /* how to deal with overlap?! */
+                                        /*** how to deal with overlap? ***/
+                                        /*** no overlap here! ***/
                                         break;
                                 }
                         }
                 } list_iterate_end();
         }
         else {
-            list_insert_head(&map->vmm_list, &newvma->vma_plink);
+                list_insert_head(&map->vmm_list, &newvma->vma_plink);
         }
 
         /*
@@ -137,6 +139,13 @@ vmmap_insert(vmmap_t *map, vmarea_t *newvma)
  * Your algorithm should be first fit. If dir is VMMAP_DIR_HILO, you
  * should find a gap as high in the address space as possible; if dir
  * is VMMAP_DIR_LOHI, the gap should be as low as possible. */
+
+/* The comment for vmmap_find_range() says that you need to use the 
+   "first fit" algorithm.  So, if the direction is from high to low, 
+   you should start looking from an address as high as possible in the 
+   given address space.  If the direction is from low to high, you 
+   should start looking from an address as low as possible in the 
+   given address space. */
 int
 vmmap_find_range(vmmap_t *map, uint32_t npages, int dir)
 {
@@ -234,7 +243,7 @@ vmmap_clone(vmmap_t *map)
         vmmap_t *clonevmm = (vmmap_t *)slab_obj_alloc(vmmap_allocator);
         clonevmm->vmm_proc = map->vmm_proc;
 
-        /* copy vmarea? */
+        /*** copy vmarea? ***/
 
         return clonevmm;
 
