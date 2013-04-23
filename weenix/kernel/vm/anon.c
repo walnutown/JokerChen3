@@ -97,7 +97,6 @@ anon_put(mmobj_t *o)
                 }list_iterate_end();
                 slab_obj_free(anon_allocator, o);
         }
-
         /*NOT_YET_IMPLEMENTED("VM: anon_put");*/
 }
 
@@ -108,7 +107,11 @@ anon_lookuppage(mmobj_t *o, uint32_t pagenum, int forwrite, pframe_t **pf)
 {
         list_iterate_begin(&vn->vn_mmobj.mmo_respages, vp, pframe_t,pf_olink)
         {
-                if()
+                if(pagenum==vp->pf_pagenum)
+                {
+                        *pf=vp;
+                        return 0;
+                }
         }list_iterate_end();
         return -1;
         /*NOT_YET_IMPLEMENTED("VM: anon_lookuppage");
