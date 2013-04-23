@@ -472,17 +472,68 @@ vmmap_is_range_empty(vmmap_t *map, uint32_t startvfn, uint32_t npages)
  * of the areas. Assume (KASSERT) that all the areas you are accessing exist.
  * Returns 0 on success, -errno on error.
  */
+
+/* The memory map is a linked list of VM areas (see slide 3 of lecture 24).  
+   Each VM area has a start virtual address and a size.  So, you just have to 
+   walk down the VM areas and see which one contains the virtual address (vaddr) 
+   being requested. But what if the VM area you've found does not have enough data?
+   Then you would need to continue to the next VM area, and so on.
+ */
 int
 vmmap_read(vmmap_t *map, const void *vaddr, void *buf, size_t count)
 {
-        int i=0;
-        for(i=0;i<=count;i++)
-        {
-            vmarea_t * from=vmmap_lookup(map, i+vaddr);
-            mmobj_t *obj=from->vma_obj;
-            
+        KASSERT(NULL != map);
+
+        void *end_addr = vaddr + count;
+        size_t offset = 0;
+        if(!list_empty(&map->vmm_list)) {
+                vmarea_t *vmarea;
+                mmobj_t *obj;
+                list_iterate_begin(&map->vmm_list, vmarea, vmarea_t, vma_plink) {
+                        /* search in pframe list */
+                        obj = vmarea->vma_obj;
+                        pframe_t *pframe;
+                        if(!list_empty(&obj->mmo_respages)) {
+                                list_iterate_begin(&obj->mmo_respages, pframe, pframe_t, pf_olink) {
+                                        /* check the vitural address */
+                                        /*** get warning: pointer of type ‘void *’ used in arithmetic!!! ***/
+                                        void *pf_end_addr = pframe->pf_addr + PAGE_SIZE;
+                                        void *buf_start = (void *)(buf + offset);
+                                        if(vaddr <= pframe->pf_addr && end_addr >= pf_end_addr) {
+                                                /* **[*****]** */
+                                                /* read whole page */
+                                                uintptr_t phy_addr = pt_virt_to_phys((uintptr_t)pframe->pf_addr);
+                                                memcpy(buf_start, (void *)phy_addr, PAGE_SIZE);
+                                                offset += PAGE_SIZE;
+                                        }
+                                        else if(vaddr >= pframe->pf_addr && end_addr >= pf_end_addr) {
+                                                /* [  **]** */
+                                                uintptr_t phy_addr = pt_virt_to_phys((uintptr_t)vaddr);
+                                                size_t read_length = (size_t)(pf_end_addr - vaddr);
+                                                memcpy(buf_start, (void *)phy_addr, read_length);
+                                                offset += read_length;
+                                        }
+                                        else if(vaddr <= pframe->pf_addr && end_addr < pf_end_addr) {
+                                                /* ***[*** ] */
+                                                uintptr_t phy_addr = pt_virt_to_phys((uintptr_t)pframe->pf_addr);
+                                                size_t read_length = (size_t)(end_addr - pframe->pf_addr);
+                                                memcpy(buf_start, (void *)phy_addr, read_length);
+                                                /* read finished case */
+                                                return 0;
+                                        }
+                                } list_iterate_end();
+                        }
+                        
+                } list_iterate_end();
+                /*** return error ***/
 
         }
+        else {
+                /*** return error ***/
+
+        }
+
+        return 0;
         /*
         NOT_YET_IMPLEMENTED("VM: vmmap_read");
         return 0;

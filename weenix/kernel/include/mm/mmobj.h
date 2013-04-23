@@ -60,8 +60,8 @@ struct mmobj_ops {
          * Return 0 on success and -errno otherwise. */
         int (*lookuppage)(mmobj_t *o, uint32_t pagenum, int forwrite, struct pframe **pf);
 
-        /* Fill the page frame starting at address vp->vp_paddr with the
-         * contents of the page identified by vp->vp_obj and vp->vp_pagenum.
+        /* Fill the page frame starting at address pf->pf_paddr with the
+         * contents of the page identified by pf->pf_obj and pf->pf_pagenum.
          * This may block.
          * Return 0 on success and -errno otherwise.
          */
