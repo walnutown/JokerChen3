@@ -486,6 +486,7 @@ vmmap_read(vmmap_t *map, const void *vaddr, void *buf, size_t count)
 
         void *end_addr = vaddr + count;
         size_t offset = 0;
+        size_t rest = count;
         if(!list_empty(&map->vmm_list)) {
                 vmarea_t *vmarea;
                 mmobj_t *obj;
@@ -499,26 +500,28 @@ vmmap_read(vmmap_t *map, const void *vaddr, void *buf, size_t count)
                                         /*** get warning: pointer of type ‘void *’ used in arithmetic!!! ***/
                                         void *pf_end_addr = pframe->pf_addr + PAGE_SIZE;
                                         void *buf_start = (void *)(buf + offset);
+                                        size_t read_length = 0;
                                         if(vaddr <= pframe->pf_addr && end_addr >= pf_end_addr) {
                                                 /* **[*****]** */
                                                 /* read whole page */
                                                 uintptr_t phy_addr = pt_virt_to_phys((uintptr_t)pframe->pf_addr);
-                                                memcpy(buf_start, (void *)phy_addr, PAGE_SIZE);
-                                                offset += PAGE_SIZE;
-                                        }
+                                                read_length = PAGE_SIZE;
+                                           }
                                         else if(vaddr >= pframe->pf_addr && end_addr >= pf_end_addr) {
                                                 /* [  **]** */
                                                 uintptr_t phy_addr = pt_virt_to_phys((uintptr_t)vaddr);
-                                                size_t read_length = (size_t)(pf_end_addr - vaddr);
-                                                memcpy(buf_start, (void *)phy_addr, read_length);
-                                                offset += read_length;
+                                                read_length = (size_t)(pf_end_addr - vaddr);
                                         }
-                                        else if(vaddr <= pframe->pf_addr && end_addr < pf_end_addr) {
+                                        else if(vaddr <= pframe->pf_addr && end_addr <= pf_end_addr) {
                                                 /* ***[*** ] */
                                                 uintptr_t phy_addr = pt_virt_to_phys((uintptr_t)pframe->pf_addr);
-                                                size_t read_length = (size_t)(end_addr - pframe->pf_addr);
-                                                memcpy(buf_start, (void *)phy_addr, read_length);
-                                                /* read finished case */
+                                                read_length = (size_t)(end_addr - pframe->pf_addr);
+                                        }
+                                        memcpy(buf_start, (void *)phy_addr, PAGE_SIZE);
+                                        offset += read_length;
+                                        rest -= read_length;
+                                        if(rest == 0) {
+                                                /* read finished */
                                                 return 0;
                                         }
                                 } list_iterate_end();
