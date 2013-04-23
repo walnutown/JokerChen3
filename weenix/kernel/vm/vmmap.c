@@ -475,9 +475,18 @@ vmmap_is_range_empty(vmmap_t *map, uint32_t startvfn, uint32_t npages)
 int
 vmmap_read(vmmap_t *map, const void *vaddr, void *buf, size_t count)
 {
-        
+        int i=0;
+        for(i=0;i<=count;i++)
+        {
+            vmarea_t * from=vmmap_lookup(map, i+vaddr);
+            mmobj_t *obj=from->vma_obj;
+            
+
+        }
+        /*
         NOT_YET_IMPLEMENTED("VM: vmmap_read");
         return 0;
+        */
 }
 
 /* Write from 'buf' into the virtual address space of 'map' starting at
@@ -491,6 +500,7 @@ vmmap_read(vmmap_t *map, const void *vaddr, void *buf, size_t count)
 int
 vmmap_write(vmmap_t *map, void *vaddr, const void *buf, size_t count)
 {
+
         NOT_YET_IMPLEMENTED("VM: vmmap_write");
         return 0;
 }

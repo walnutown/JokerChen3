@@ -39,7 +39,9 @@ static mmobj_ops_t anon_mmobj_ops = {
 void
 anon_init()
 {
-        NOT_YET_IMPLEMENTED("VM: anon_init");
+        anon_allocator = slab_allocator_create("anon", sizeof(mmobj_t));
+        KASSERT(NULL != anon_allocator && "failed to create anon allocator!");
+        /*NOT_YET_IMPLEMENTED("VM: anon_init");*/
 }
 
 /*
@@ -51,8 +53,11 @@ anon_init()
 mmobj_t *
 anon_create()
 {
-        NOT_YET_IMPLEMENTED("VM: anon_create");
-        return NULL;
+        mmobj_t * newanon=(mmobj_t *) slab_obj_alloc(anon_allocator);
+        mmobj_init(newanon,anon_mmobj_ops);
+        newanon->mmo_un.mmo_vmas=mmobj_bottom_vmas(newanon);
+        /*NOT_YET_IMPLEMENTED("VM: anon_create");
+        return NULL;*/
 }
 
 /* Implementation of mmobj entry points: */
@@ -63,7 +68,8 @@ anon_create()
 static void
 anon_ref(mmobj_t *o)
 {
-        NOT_YET_IMPLEMENTED("VM: anon_ref");
+        o->mmo_refcount++;
+        /*NOT_YET_IMPLEMENTED("VM: anon_ref");*/
 }
 
 /*
@@ -77,7 +83,22 @@ anon_ref(mmobj_t *o)
 static void
 anon_put(mmobj_t *o)
 {
-        NOT_YET_IMPLEMENTED("VM: anon_put");
+        if((o->mmo_refcount--))>o->mmo_nrespages)
+        {
+                return;
+        }
+        else
+        {
+                list_iterate_begin(&vn->vn_mmobj.mmo_respages, vp, pframe_t,pf_olink)
+                {
+                        pframe_clear_busy(vp);
+                        pframe_unpin(vp);
+                        pframe_free(vp);
+                }list_iterate_end();
+                slab_obj_free(anon_allocator, o);
+        }
+
+        /*NOT_YET_IMPLEMENTED("VM: anon_put");*/
 }
 
 /* Get the corresponding page from the mmobj. No special handling is
@@ -85,8 +106,13 @@ anon_put(mmobj_t *o)
 static int
 anon_lookuppage(mmobj_t *o, uint32_t pagenum, int forwrite, pframe_t **pf)
 {
-        NOT_YET_IMPLEMENTED("VM: anon_lookuppage");
+        list_iterate_begin(&vn->vn_mmobj.mmo_respages, vp, pframe_t,pf_olink)
+        {
+                if()
+        }list_iterate_end();
         return -1;
+        /*NOT_YET_IMPLEMENTED("VM: anon_lookuppage");
+        return -1;*/
 }
 
 /* The following three functions should not be difficult. */
@@ -94,6 +120,7 @@ anon_lookuppage(mmobj_t *o, uint32_t pagenum, int forwrite, pframe_t **pf)
 static int
 anon_fillpage(mmobj_t *o, pframe_t *pf)
 {
+        
         NOT_YET_IMPLEMENTED("VM: anon_fillpage");
         return 0;
 }
@@ -101,6 +128,7 @@ anon_fillpage(mmobj_t *o, pframe_t *pf)
 static int
 anon_dirtypage(mmobj_t *o, pframe_t *pf)
 {
+        
         NOT_YET_IMPLEMENTED("VM: anon_dirtypage");
         return -1;
 }
@@ -108,6 +136,7 @@ anon_dirtypage(mmobj_t *o, pframe_t *pf)
 static int
 anon_cleanpage(mmobj_t *o, pframe_t *pf)
 {
+        
         NOT_YET_IMPLEMENTED("VM: anon_cleanpage");
         return -1;
 }
