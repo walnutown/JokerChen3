@@ -518,6 +518,11 @@ vmmap_read(vmmap_t *map, const void *vaddr, void *buf, size_t count)
                                                 phy_addr = pt_virt_to_phys((uintptr_t)pframe->pf_addr);
                                                 read_length = (size_t)(end_addr - pframe->pf_addr);
                                         }
+                                        else if(vaddr >= pframe->pf_addr && end_addr <= pf_end_addr) {
+                                                /* [ *** ] */
+                                                phy_addr = pt_virt_to_phys((uintptr_t)vaddr);
+                                                read_length = count;
+                                        }
                                         memcpy(buf_start, (void *)phy_addr, PAGE_SIZE);
                                         offset += read_length;
                                         rest -= read_length;
