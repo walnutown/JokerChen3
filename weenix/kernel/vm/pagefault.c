@@ -76,7 +76,7 @@ handle_pagefault(uintptr_t vaddr, uint32_t cause)
 	}/*check permission*/
 	else if(fault_vma->vma_prot&PROT_NONE)
 	{
-		if(!cause&FAULT_RESERVED)
+		if(!(cause&FAULT_RESERVED))
 		{
 			proc_kill(curproc, -EFAULT);
 			return;
@@ -84,7 +84,7 @@ handle_pagefault(uintptr_t vaddr, uint32_t cause)
 	}
 	else if(fault_vma->vma_prot&PROT_EXEC)
 	{
-		if(!cause&FAULT_EXEC)
+		if(!(cause&FAULT_EXEC))
 		{
 			proc_kill(curproc, -EFAULT);
 			return;
@@ -92,7 +92,7 @@ handle_pagefault(uintptr_t vaddr, uint32_t cause)
 	}
 	else if(cause & PROT_WRITE)
 	{
-		if(!cause&FAULT_WRITE)
+		if(!(cause&FAULT_WRITE))
 		{
 			proc_kill(curproc, -EFAULT);
 			return;
@@ -102,15 +102,11 @@ handle_pagefault(uintptr_t vaddr, uint32_t cause)
 	pframe_t *result_pframe;
 	if(fault_vma->vma_flags==MAP_PRIVATE && fault_vma->vma_obj->mmo_shadowed!=NULL)
 	{
-		err=fault_vma->vma_obj->mmo_shadowed->mmo_ops->lookuppage(vma->vma_obj->mmo_shadowed,ADDR_TO_PN(vaddr),cause&FAULT_WRITE,&result_pframe);
-		if(err<0)
-			return err;
+		err=fault_vma->vma_obj->mmo_shadowed->mmo_ops->lookuppage(fault_vma->vma_obj->mmo_shadowed,ADDR_TO_PN(vaddr),cause&FAULT_WRITE,&result_pframe);
 	}
 	else if(fault_vma->vma_flags==MAP_SHARED)
 	{
-		err=fault_vma->vma_obj->mmo_ops->lookuppage(vma->vma_obj,ADDR_TO_PN(vaddr),cause&FAULT_WRITE,&result_pframe);
-		if(err<0)
-			return err;
+		err=fault_vma->vma_obj->mmo_ops->lookuppage(fault_vma->vma_obj,ADDR_TO_PN(vaddr),cause&FAULT_WRITE,&result_pframe);
 	}
 	uint32_t pdflags=FAULT_USER;
 	uint32_t ptflags=FAULT_USER;
@@ -126,7 +122,7 @@ handle_pagefault(uintptr_t vaddr, uint32_t cause)
 	}
 	if(!PAGE_ALIGNED(vaddr))
 		vaddr=ADDR_TO_PN(vaddr)*PAGE_SIZE;
-	uintptr_t paddr = pt_virt_to_phys(result_pframe->pf_addr);
+	uintptr_t paddr = pt_virt_to_phys((uintptr_t)result_pframe->pf_addr);
 	pt_map(p_pagedir,vaddr,paddr,pdflags,ptflags);
     /*NOT_YET_IMPLEMENTED("VM: handle_pagefault");*/
 }
