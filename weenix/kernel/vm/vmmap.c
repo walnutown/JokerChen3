@@ -98,36 +98,44 @@ vmmap_destroy(vmmap_t *map)
  * the vmarea is valid.  This involves finding where to put it in the list
  * of VM areas, and adding it. Don't forget to set the vma_vmmap for the
  * area. */
+ /*work*/
 void
 vmmap_insert(vmmap_t *map, vmarea_t *newvma)
 {
         KASSERT(NULL != map);
         KASSERT(NULL != newvma);
     
-        if(!list_empty(&map->vmm_list)) {
+        if(!list_empty(&map->vmm_list)) 
+        {
                 uint32_t vma_start = newvma->vma_start;
                 vmarea_t *iterator;
-                list_iterate_begin(&map->vmm_list, iterator, vmarea_t, vma_plink) {              
+                list_iterate_begin(&map->vmm_list, iterator, vmarea_t, vma_plink) 
+                {              
                         /* keep the areas sorted by the start of their virtual page ranges */
-                        if(vma_start > iterator->vma_start) {
+                        if(vma_start > iterator->vma_start) 
+                        {
                                 /* no two ranges overlap with each other */
-                                if(vma_start > iterator->vma_end) {
+                                if(vma_start > iterator->vma_end) 
+                                {
                                         /* set the vma_vmmap for the area */
                                         newvma->vma_vmmap = map;
                                         /*** need collapse? ***/
                                         list_insert_before((&iterator->vma_plink)->l_next, &newvma->vma_plink);
-                                        break;
+                                        return 0;
                                 }
-                                else {
+                                else 
+                                {
                                         /*** how to deal with overlap? ***/
                                         /*** no overlap here! ***/
-                                        break;
+                                        return -1;
                                 }
                         }
                 } list_iterate_end();
         }
         else {
+                newvma->vma_vmmap = map;
                 list_insert_head(&map->vmm_list, &newvma->vma_plink);
+                return 0;
         }
 
         /*
@@ -149,6 +157,7 @@ vmmap_insert(vmmap_t *map, vmarea_t *newvma)
    given address space.  If the direction is from low to high, you 
    should start looking from an address as low as possible in the 
    given address space. */
+   /**/
 int
 vmmap_find_range(vmmap_t *map, uint32_t npages, int dir)
 {
