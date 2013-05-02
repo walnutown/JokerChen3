@@ -143,7 +143,10 @@ proc_create(char *name)
         {
             process->p_files[fd++] = NULL;
         }
-
+        process->p_brk = NULL;
+        process->p_start_brk = NULL;
+        process->p_vmmap = vmmap_create();
+        process->p_vmmap->vmm_proc = process;
         return process;
 }
 
