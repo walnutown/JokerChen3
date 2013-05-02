@@ -131,8 +131,12 @@ vmmap_insert(vmmap_t *map, vmarea_t *newvma)
                                 }
                         }
                 } list_iterate_end();
+                list_insert_tail(&map->vmm_list, newvma->vma_plink);
+                newvma->vma_vmmap = map;
+                return;
         }
-        else {
+        else 
+        {
                 newvma->vma_vmmap = map;
                 list_insert_head(&map->vmm_list, &newvma->vma_plink);
                 return 0;
@@ -167,23 +171,28 @@ vmmap_find_range(vmmap_t *map, uint32_t npages, int dir)
         /*** end: USER_MEM_HIGH ***/ /* exclusive */
         uint32_t page_num_low = ADDR_TO_PN(USER_MEM_LOW);
         uint32_t page_num_high  = ADDR_TO_PN(USER_MEM_HIGH);
-
         uint32_t page_no;
 
-        if(!list_empty(&map->vmm_list)) {
+        if(!list_empty(&map->vmm_list)) 
+        {
                 /* vmarea_t *iterator; */
                 unsigned int pages;
                 /* high to low */
-                if(dir == VMMAP_DIR_HILO) {
+                if(dir == VMMAP_DIR_HILO) 
+                {
                         /*** page or address? ***/
                         list_link_t *link;
-                        for (link = (&map->vmm_list)->l_prev; link != &map->vmm_list; link = link->l_prev) {
+                        for (link = (&map->vmm_list)->l_prev; link != &map->vmm_list; link = link->l_prev) 
+                        {
                                 vmarea_t *vma = list_item(link, vmarea_t, vma_plink);
-                                if(link->l_next == &map->vmm_list) { /* last one */
+                                pages=0;
+                                if(link->l_next == &map->vmm_list) 
+                                { /* last one */
                                         pages = page_num_high - vma->vma_end;
                                         page_no = vma->vma_end;
                                 }
-                                else { /* find gap in middle */
+                                else 
+                                { /* find gap in middle */
                                         vmarea_t *vma_next = list_item(link->l_next, vmarea_t, vma_plink);
                                         pages = vma_next->vma_start - vma->vma_end;
                                         page_no = vma->vma_end;   
@@ -191,7 +200,8 @@ vmmap_find_range(vmmap_t *map, uint32_t npages, int dir)
                                 if(pages >= npages)
                                         return page_no;
                         }
-                        if(link == &map->vmm_list) { /* first one */
+                        if(link == &map->vmm_list) 
+                        { /* first one */
                                 vmarea_t *vma = list_item(link, vmarea_t, vma_plink);
                                 pages = vma->vma_start - page_num_low;
                                 page_no = vma->vma_end;
@@ -200,15 +210,19 @@ vmmap_find_range(vmmap_t *map, uint32_t npages, int dir)
                         }
                 }
                 /* low to high */
-                if(dir == VMMAP_DIR_LOHI) {
+                if(dir == VMMAP_DIR_LOHI) 
+                {
                         list_link_t *link;
-                        for (link = (&map->vmm_list)->l_next; link != &map->vmm_list; link = link->l_next) {
+                        for (link = (&map->vmm_list)->l_next; link != &map->vmm_list; link = link->l_next) 
+                        {
                                 vmarea_t *vma = list_item(link, vmarea_t, vma_plink);
-                                if(link->l_prev == &map->vmm_list) { /* first one */
+                                if(link->l_prev == &map->vmm_list) 
+                                { /* first one */
                                         pages = vma->vma_start - page_num_low;
                                         page_no = page_num_low;
                                 }
-                                else { /* find gap in middle */
+                                else 
+                                { /* find gap in middle */
                                         vmarea_t *vma_prev = list_item(link->l_prev, vmarea_t, vma_plink);
                                         pages = vma->vma_start - vma_prev->vma_end;
                                         page_no = vma_prev->vma_end;
@@ -216,7 +230,8 @@ vmmap_find_range(vmmap_t *map, uint32_t npages, int dir)
                                 if(pages >= npages)
                                         return page_no;
                         }
-                        if(link == &map->vmm_list) { /* last one */
+                        if(link == &map->vmm_list) 
+                        { /* last one */
                                 vmarea_t *vma = list_item(link, vmarea_t, vma_plink);
                                 pages = page_num_high - vma->vma_end;
                                 page_no = vma->vma_end;
