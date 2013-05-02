@@ -34,8 +34,104 @@ int
 do_mmap(void *addr, size_t len, int prot, int flags,
         int fd, off_t off, void **ret)
 {
-        NOT_YET_IMPLEMENTED("VM: do_mmap");
+		/* Invalid flags */
+        if(flags != MAP_SHARED && flags != MAP_PRIVATE && flags != MAP_FIXED && flags != MAP_ANON)
+        {
+				dbg(DBG_ERROR | DBG_VM, "ERROR: do_mmap: Invalid flags\n");
+				return EINVAL;
+		}
+
+		/* Invalid file descriptor */
+        if(fd < 0 || fd >= NFILES || (curproc->p_files[fd]==NULL))
+        {
+			dbg(DBG_ERROR | DBG_VM, "ERROR: do_mmap: Invalid file descriptor\n");
+            return -EBADF;       
+        }
+        
+        /* Invalid prot, PROT_EXEC should be pass */
+        if(prot != PROT_EXEC)
+        {
+			dbg(DBG_ERROR | DBG_VM, "ERROR: do_mmap: Invalid prot\n");
+            return -EPERM;
+		}
+
+		/* Invalid len, len should be not be NULL */
+		if (sizeof(len) == NULL)
+		{
+			dbg(DBG_ERROR | DBG_VM, "ERROR: do_mmap: Invalid prot\n");
+            return -EINVAL; 
+
+		}
+
+		/* Invalid off, off should be not be NULL */
+		if (sizeof(off) == NULL)
+		{
+			dbg(DBG_ERROR | DBG_VM, "ERROR: do_mmap: Invalid prot\n");
+            return -EINVAL; 
+
+		}
+
+		/* Ivalid addr */
+		if(PAGE_ALIGNED(addr)==0)
+		{
+			dbg(DBG_ERROR | DBG_VM, "ERROR: do_mmap: Invalid addr\n");
+            return -EINVAL; 
+		}
+
+		/* The system limit on the number of open files */
+		if(fd == -EMFILE)
+		{
+			dbg(DBG_ERROR | DBG_VM,"ERROR: do_map: The current process pid= %d exceeds the maximum permissible number of files.\n",curproc->p_pid);
+			return -EMFILE;
+		}
+
+		/* Insufficient Memory */
+		file_t *fresh_file = fget(-1);
+		if(fresh_file == NULL)
+		{
+			dbg(DBG_ERROR | DBG_VM,"ERROR: do_map: No kernel memory availble\n");
+			fput(fresh_file);
+			return -ENOMEM;
+		}
+
+		/* Refer to the man page of mmap2 */
+		if(flags == MAP_PRIVATE && curproc->p_files[fd]->f_mode != FMODE_READ)
+		{
+			dbg(DBG_ERROR | DBG_VM, "ERROR: do_mmap: Invalid access\n");
+            return -EACCES; 
+		}
+
+		/* Refer to the man page of mmap2 */
+		if(flags == MAP_SHARED && prot == PROT_WRITE && curproc->p_files[fd]->f_mode != (FMODE_READ || FMODE_WRITE))
+		{
+			dbg(DBG_ERROR | DBG_VM, "ERROR: do_mmap: Invalid access\n");
+            return -EACCES; 
+		}
+
+		/* Refer to the man page of mmap2 */
+		if(flags == MAP_SHARED && prot == PROT_WRITE && curproc->p_files[fd]->f_mode != FMODE_APPEND)
+		{
+			dbg(DBG_ERROR | DBG_VM, "ERROR: do_mmap: Invalid access\n");
+            return -EACCES; 
+		}
+
+		/* Given in google group */
+
+
+		/* Flushing the TLB */
+		int address = (uintptr_t)addr;
+		tlb_flush(address);
+
+		/* Calling the function vmmmap_map */
+
+		int i = vmmap_map(curproc->p_vmmap, curproc->p_files[fd]->f_vnode, 0, 0, prot, flags, off, NULL, (vmarea_t**)ret);
+		return 0;
+
+       
+		NOT_YET_IMPLEMENTED("VM: do_mmap");
         return -1;
+        /*NOT_YET_IMPLEMENTED("VM: do_mmap");
+        return -1;*/
 }
 
 
