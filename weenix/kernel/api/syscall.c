@@ -53,21 +53,103 @@ init_func(syscall_init);
  *  - return the number of bytes actually read, or if anything goes wrong
  *    set curthr->kt_errno and return -1
  */
+
+/*
+typedef struct read_args {
+    int     fd;
+    void   *buf;
+    size_t  nbytes;
+} read_args_t;
+ */
 static int
 sys_read(read_args_t *arg)
 {
         NOT_YET_IMPLEMENTED("VM: sys_read");
-        return -1;
+
+        /* copy_from_user() the read_args_t */
+        read_args_t            karg;
+        int                     err;
+        if ((err = copy_from_user(&karg, arg, sizeof(read_args_t))) < 0) 
+        {
+                curthr->kt_errno = -err;
+                return -1;
+        }
+        /* page_alloc() a temporary buffer */
+        void *temp_buffer = page_alloc();
+        if (temp_buffer == NULL)
+        {
+                curthr->kt_errno = ENOMEM;
+                return -1;
+        }
+        /* call do_read(), and copy_to_user() the read bytes */
+        int ret;
+        if( (ret = do_read(karg.fd, temp_buffer, karg.nbytes)) < 0 )
+        {
+                page_free(temp_buffer);
+                curthr->kt_errno = -ret;
+                return -1;
+        }
+        if ( (err = copy_to_user(arg->buf, temp_buffer, ret) < 0 ) 
+        {
+                page_free(temp_buffer);
+                curthr->kt_errno = -err;
+                return -1;
+        }
+        /* sys_read goes well here, page_free() the tmeporary buffer,
+           return the number of bytes actually read */
+        page_free(temp_buffer);
+        return ret;
 }
 
 /*
  * This function is almost identical to sys_read.  See comments above.
  */
+/*
+typedef struct write_args 
+{
+    int     fd;
+    void   *buf;
+    size_t  nbytes;
+} write_args_t;
+ */ 
 static int
 sys_write(write_args_t *arg)
 {
         NOT_YET_IMPLEMENTED("VM: sys_write");
-        return -1;
+
+        /* copy_from_user() the write_args_t */
+        write_args_t            karg;
+        int                     err;
+        if ((err = copy_from_user(&karg, arg, sizeof(write_args_t))) < 0) 
+        {
+                curthr->kt_errno = -err;
+                return -1;
+        }
+        /* page_alloc() a temporary buffer */
+        void *temp_buffer = page_alloc();
+        if (temp_buffer == NULL)
+        {
+                curthr->kt_errno = ENOMEM;
+                return -1;
+        }
+        /* call do_write(), and copy_to_user() the read bytes */
+        int ret;
+        if( (ret = do_write(karg.fd, temp_buffer, karg.nbytes)) < 0 )
+        {
+                page_free(temp_buffer);
+                curthr->kt_errno = -ret;
+                return -1;
+        }
+        if ( (err = copy_to_user(arg->buf, temp_buffer, ret) < 0 ) 
+        {
+                page_free(temp_buffer);
+                curthr->kt_errno = -err;
+                return -1;
+        }
+        /* sys_write goes well here, page_free() the tmeporary buffer,
+           return the number of bytes actually write */
+        page_free(temp_buffer);
+        return ret;
 }
 
 /*
