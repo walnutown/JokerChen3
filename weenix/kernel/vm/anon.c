@@ -125,6 +125,11 @@ anon_lookuppage(mmobj_t *o, uint32_t pagenum, int forwrite, pframe_t **pf)
 
 /* The following three functions should not be difficult. */
 
+/* Fill the page frame starting at address pf->pf_paddr with the
+ * contents of the page identified by pf->pf_obj and pf->pf_pagenum.
+ * This may block.
+ * Return 0 on success and -errno otherwise.
+ */
 static int
 anon_fillpage(mmobj_t *o, pframe_t *pf)
 {
@@ -133,6 +138,15 @@ anon_fillpage(mmobj_t *o, pframe_t *pf)
         return 0;
 }
 
+/* A hook; called when a request is made to dirty a non-dirty page.
+ * Perform any necessary actions that must take place in order for it
+ * to be possible to dirty (write to) the provided page. (For example,
+ * if this page corresponds to a sparse block of a file that belongs to
+ * an S5 filesystem, it would be necessary/desirable to allocate a
+ * block in the fs before allowing a write to the block to proceed).
+ * This may block.
+ * Return 0 on success and -errno otherwise.
+ */
 static int
 anon_dirtypage(mmobj_t *o, pframe_t *pf)
 {
@@ -141,6 +155,13 @@ anon_dirtypage(mmobj_t *o, pframe_t *pf)
         return -1;
 }
 
+/*
+ * Write the contents of the page frame starting at address
+ * pf->pf_paddr to the page identified by pf->pf_obj and
+ * pf->pf_pagenum.
+ * This may block.
+ * Return 0 on success and -errno otherwise.
+ */
 static int
 anon_cleanpage(mmobj_t *o, pframe_t *pf)
 {
