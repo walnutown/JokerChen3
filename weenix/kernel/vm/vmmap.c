@@ -629,7 +629,6 @@ vmmap_read(vmmap_t *map, const void *vaddr, void *buf, size_t count)
         /*uint32_t page_res = count - page_num * PAGE_SIZE;*/
 
         size_t count_res = count;
-
         uint32_t vfn = vfn_start;
         vmarea_t *vma;
         pframe_t *pframe;

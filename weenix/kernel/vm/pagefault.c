@@ -48,8 +48,85 @@
  *              address which caused the fault, possible values
  *              can be found in pagefault.h
  */
+ /*
+ #define FAULT_PRESENT  0x01
+#define FAULT_WRITE    0x02
+#define FAULT_USER     0x04
+#define FAULT_RESERVED 0x08
+#define FAULT_EXEC     0x10
+( ((cause & FAULT_WRITE) && (vma->vma_prot & PROT_NONE)) 
+|| ((cause & FAULT_EXEC) && (vma->vma_prot & PROT_NONE)) 
+|| ((cause & FAULT_WRITE) && (vma->vma_prot & PROT_WRITE)==0) 
+|| ((cause & FAULT_EXEC) && (vma->vma_prot & PROT_EXEC)==0) )
+#define PROT_NONE       0x0    
+#define PROT_READ       0x1    
+#define PROT_WRITE      0x2    
+#define PROT_EXEC       0x4
+ */
 void
 handle_pagefault(uintptr_t vaddr, uint32_t cause)
 {
-        NOT_YET_IMPLEMENTED("VM: handle_pagefault");
+	vmarea_t *fault_vma=vmmap_lookup(curproc->p_vmmap, ADDR_TO_PN(vaddr));
+	int err=0;
+	/*find vmarea*/
+	if(fault_vma==NULL)
+	{
+		proc_kill(curproc, -EFAULT);
+		return;
+	}/*check permission*/
+	else if(fault_vma->vma_prot&PROT_NONE)
+	{
+		if(!cause&FAULT_RESERVED)
+		{
+			proc_kill(curproc, -EFAULT);
+			return;
+		}
+	}
+	else if(fault_vma->vma_prot&PROT_EXEC)
+	{
+		if(!cause&FAULT_EXEC)
+		{
+			proc_kill(curproc, -EFAULT);
+			return;
+		}
+	}
+	else if(cause & PROT_WRITE)
+	{
+		if(!cause&FAULT_WRITE)
+		{
+			proc_kill(curproc, -EFAULT);
+			return;
+		}
+	}
+	/*to find the correct page*/
+	pframe_t *result_pframe;
+	if(fault_vma->vma_flags==MAP_PRIVATE && fault_vma->vma_obj->mmo_shadowed!=NULL)
+	{
+		err=fault_vma->vma_obj->mmo_shadowed->mmo_ops->lookuppage(vma->vma_obj->mmo_shadowed,ADDR_TO_PN(vaddr),cause&FAULT_WRITE,&result_pframe);
+		if(err<0)
+			return err;
+	}
+	else if(fault_vma->vma_flags==MAP_SHARED)
+	{
+		err=fault_vma->vma_obj->mmo_ops->lookuppage(vma->vma_obj,ADDR_TO_PN(vaddr),cause&FAULT_WRITE,&result_pframe);
+		if(err<0)
+			return err;
+	}
+	uint32_t pdflags=FAULT_USER;
+	uint32_t ptflags=FAULT_USER;
+	if(cause & FAULT_PRESENT)
+	{
+		ptflags=ptflags|PT_PRESENT;
+		pdflags=pdflags|PD_PRESENT;
+	}
+	if(cause & FAULT_WRITE)
+	{
+		ptflags=ptflags|PT_WRITE;
+		pdflags=pdflags|PD_WRITE;
+	}
+	if(!PAGE_ALIGNED(vaddr))
+		vaddr=ADDR_TO_PN(vaddr)*PAGE_SIZE;
+	uintptr_t paddr = pt_virt_to_phys(result_pframe->pf_addr);
+	pt_map(p_pagedir,vaddr,paddr,pdflags,ptflags);
+    /*NOT_YET_IMPLEMENTED("VM: handle_pagefault");*/
 }
