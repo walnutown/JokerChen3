@@ -355,33 +355,42 @@ vmmap_map(vmmap_t *map, vnode_t *file, uint32_t lopage, uint32_t npages,
         {
             if(!vmmap_is_range_empty(map,lopage,npages))
             {
-                vmmap_remove(map, lopage, npages);
+                err=vmmap_remove(map, lopage, npages);
+                if(err!=0)
+                    return err;
             }
             vmarea_t * newvma=vmarea_alloc();
             newvma->vma_start=lopage;
-            newvma->vma_end=lopage+npages-1;
+            newvma->vma_end=lopage+npages;
         }
         newvma->vma_prot=prot;
         newvma->vma_flags=flags;
-        newvma->vma_vmmap=map;
-        vmmap_insert(map,newvma);
+        
         mmobj_t* obj;
         if(file==NULL)
         {
             obj=anon_create();
             if(obj==NULL)
                 return -1;
+            newvma->vma_off = 0;
+            /* not sure 
+            newvma->vma_prot = PROT_NONE;    
+            newvma->vma_flags = 0;
+            */
         }
         else 
         {
-            if((err=mmap(file,newvma,&obj))<0)
+            if((err=(file->vn_ops->mmap)(file,newvma,&obj))<0)
                 return err;
         }
+        
         newvma->vma_obj=obj;
-        if(MAP_PRIVATE)
+        if(flags==MAP_PRIVATE)
         {
             newvma->vma_obj->mmo_shadowed=shadow_create();
         }
+        new=&newvma;
+        vmmap_insert(map,newvma);
         return 0;
         /*
         NOT_YET_IMPLEMENTED("VM: vmmap_map");
