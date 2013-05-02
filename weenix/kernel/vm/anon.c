@@ -144,7 +144,10 @@ anon_fillpage(mmobj_t *o, pframe_t *pf)
         uint32_t phy_addr = pt_virt_to_phys((uint32_t)(pf->pf_addr));
         memset((void*)phy_addr, 0, PAGE_SIZE);
         /* pin pages */
-        pframe_pin(pf);
+        if(!pframe_is_pinned(pf))
+        {
+                pframe_pin(pf);
+        }
 
         /*NOT_YET_IMPLEMENTED("VM: anon_fillpage");*/
         return 0;
