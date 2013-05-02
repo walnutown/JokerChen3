@@ -289,6 +289,7 @@ vmmap_clone(vmmap_t *map)
         if(clonevmm)
         {
             vmarea_t* newvma;
+            vmarea_t* iterator;
             list_iterate_begin(&map->vmm_list, iterator, vmarea_t, vma_plink)
             {
                 newvma=vmarea_alloc();
@@ -334,12 +335,13 @@ vmmap_clone(vmmap_t *map)
  *
  * If 'new' is non-NULL a pointer to the new vmarea_t should be stored in it.
  */
-
+/*Not total sure about shadow part*/
 int
 vmmap_map(vmmap_t *map, vnode_t *file, uint32_t lopage, uint32_t npages,
           int prot, int flags, off_t off, int dir, vmarea_t **new)
 {
         int err;
+        /*set up new vmare except mmobj*/
         if(lopage==0)
         {
             int vfn_start=vmmap_find_range(map,npages,dir);
@@ -365,15 +367,18 @@ vmmap_map(vmmap_t *map, vnode_t *file, uint32_t lopage, uint32_t npages,
         }
         newvma->vma_prot=prot;
         newvma->vma_flags=flags;
-        
+        newvma->off=off;
+
+        //set up mmobj
         mmobj_t* obj;
         if(file==NULL)
         {
             obj=anon_create();
             if(obj==NULL)
                 return -1;
+            obj->mmo_ops->ref(obj);
+            /* not sure about above line, reference count increase 
             newvma->vma_off = 0;
-            /* not sure 
             newvma->vma_prot = PROT_NONE;    
             newvma->vma_flags = 0;
             */
@@ -382,14 +387,15 @@ vmmap_map(vmmap_t *map, vnode_t *file, uint32_t lopage, uint32_t npages,
         {
             if((err=(file->vn_ops->mmap)(file,newvma,&obj))<0)
                 return err;
+            file->vn_mmobj=*obj;
         }
-        
+
         newvma->vma_obj=obj;
         if(flags==MAP_PRIVATE)
         {
             newvma->vma_obj->mmo_shadowed=shadow_create();
         }
-        new=&newvma;
+        *new=newvma;
         vmmap_insert(map,newvma);
         return 0;
         /*
@@ -435,67 +441,57 @@ vmmap_remove(vmmap_t *map, uint32_t lopage, uint32_t npages)
                 vmarea_t *iterator;
                 list_iterate_begin(&map->vmm_list, iterator, vmarea_t, vma_plink) 
                 {              
-                        if(lopage >= iterator->vma_start && lopage <= iterator->vma_end) 
+                        if(lopage >= iterator->vma_start && lopage < iterator->vma_end) 
                         {
-                            if((lopage+npages-1)>=vma_start&&(lopage+npages-1)<=iterator->vma_end)
+                            /*case1 [   ******    ]*/
+                            if((lopage+npages)>vma_start&&(lopage+npages)<=iterator->vma_end)
                             {
                                 vmarea_t * newvma1=vmarea_alloc();
                                 vmarea_t * newvma2=vmarea_alloc();
+                                if(!newvma1||!newvma2)
+                                    return -1;
+
                                 newvma1->vma_start=iterator->vma_start;
-                                newvma1->vma_end=lopage-1;
-                                newvma2->vma_start=lopage+npages;
-                                newvma2->vma_end=iterator->vma_end;
-                                newvma1->vma_off=iterator->vma_off;
-                                //newvma2->vma_off=iterator->vma_off+;
+                                newvma1->vma_end=lopage;
+                                newvma1->vma_off=vma->vma_off;
                                 newvma1->vma_prot=iterator->vma_prot;
                                 newvma1->vma_flags=iterator->vma_flags;
                                 newvma1->vma_obj=iterator->vma_obj;
-                                newvma1->vma_vmmap=iterator->vma_vmmap;
+
+                                newvma2->vma_start=lopage+npages;
+                                newvma2->vma_end=iterator->vma_end;
+                                newvma2->vma_off=iterator->vma_off+(lopage+npages-newvma1->vma_start);
+                                /*newvma2->vma_off=iterator->vma_off+(newvma1->vma_end-newvma1->vma_start);*/
                                 newvma2->vma_prot=iterator->vma_prot;
                                 newvma2->vma_flags=iterator->vma_flags;
                                 newvma2->vma_obj=iterator->vma_obj;
-                                newvma2->vma_vmmap=iterator->vma_vmmap;
+                                (newvma2->vma_obj->mmo_ops->ref)(newvma2->vma_obj);
 
                                 list_remove(iterator->vma_plink);
                                 vmmap_insert(map,newvma1);
                                 vmmap_insert(map,newvma2);
                             }
-                            else 
+                            else /*case2 [      *******]** */
                             {
-                                vmarea_t *newvma=vmarea_alloc();
-                                newvma->vma_start=iterator->vma_start;
-                                newvma->vma_end=lopage-1;
-                                newvma->vma_off=iterator->vma_off;
-                                newvma->vma_prot=iterator->vma_prot;
-                                newvma->vma_flags=iterator->vma_flags;
-                                newvma->vma_obj=iterator->vma_obj;
-                                newvma->vma_vmmap=iterator->vma_vmmap;
-                                list_remove(iterator->vma_plink);
-                                vmmap_insert(map,newvma);
+                                iterator->vma_end=lopage;
                             }
                         }
-                        else if((lopage+npages-1)>=vma_start&&(lopage+npages-1)<=iterator->vma_end)
+                        /*case3  *[*****        ] */
+                        else if((lopage+npages)>vma_start&&(lopage+npages)<=iterator->vma_end)
                         {
-                                vmarea_t *newvma=vmarea_alloc();
-                                newvma->vma_start=lopage+npages;
-                                newvma->vma_end=iterator->vma_end;
-
-                                newvma->vma_off=iterator->vma_off;
-                                newvma->vma_prot=iterator->vma_prot;
-                                newvma->vma_flags=iterator->vma_flags;
-                                newvma->vma_obj=iterator->vma_obj;
-                                newvma->vma_vmmap=iterator->vma_vmmap;
-                                list_remove(iterator->vma_plink);
-                                vmmap_insert(map,newvma);
+                                iterator->vma_off=iterator->vma_off+(lopage+npages-iterator->vma_start);
+                                iterator->vma_start=lopage+npages;
                         }
-                        else if((vma_start>=lopage)&&(vma_end<=lopage+npages-1))
+                        /*case4  *[*************]** */
+                        else if((vma_start>=lopage)&&(vma_end<=lopage+npages))
                         {
                                 list_remove(iterator->vma_plink);
+                                vmarea_free(iterator);
                         }
 
                 } list_iterate_end();
         }
-        
+        return 0;
         /*NOT_YET_IMPLEMENTED("VM: vmmap_remove");
         return -1;*/
 }
@@ -508,20 +504,25 @@ int
 vmmap_is_range_empty(vmmap_t *map, uint32_t startvfn, uint32_t npages)
 {
         KASSERT(NULL != map);
-
-        if(!list_empty(&map->vmm_list)) {
+        if(!list_empty(&map->vmm_list)) 
+        {
                 vmarea_t *iterator;
-                list_iterate_begin(&map->vmm_list, iterator, vmarea_t, vma_plink) {
+                list_iterate_begin(&map->vmm_list, iterator, vmarea_t, vma_plink) 
+                {
                         /* [   *****]**** */
-                        if(iterator->vma_start <= startvfn && iterator->vma_end >= startvfn) {
+                        if(iterator->vma_start <= startvfn && iterator->vma_end > startvfn) 
+                        {
                                 return 0;
                         } /* ****[****    ] */
-                        else if(iterator->vma_start <= (startvfn + npages) && iterator->vma_end >= (startvfn + npages)) {
+                        else if(iterator->vma_start < (startvfn + npages) && iterator->vma_end >= (startvfn + npages)) 
+                        {
                                 return 0;
                         } /* ***[****]*** */
-                        else if(iterator->vma_start >= startvfn && iterator->vma_end <= (startvfn + npages)) {
+                        else if(iterator->vma_start >= startvfn && iterator->vma_end <= (startvfn + npages)) 
+                        {
                                 return 0;
                         }
+
                 } list_iterate_end();
         }
         return 1;
