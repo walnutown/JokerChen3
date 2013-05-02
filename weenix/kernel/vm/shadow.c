@@ -100,7 +100,37 @@ shadow_ref(mmobj_t *o)
 static void
 shadow_put(mmobj_t *o)
 {
-        NOT_YET_IMPLEMENTED("VM: shadow_put");
+        o->mmo_refcount--;
+        if(o->mmo_refcount > o->mmo_nrespages)
+        {
+                return;
+        }
+        else
+        {
+                if(!list_empty(&o->mmo_respages))
+                {
+                        pframe_t *pf;
+                        list_iterate_begin(&(o->mmo_respages), pf, pframe_t,pf_olink)
+                        {
+                                if(pframe_is_busy(pf))
+                                {
+                                       sched_sleep_on(&pf->pf_waitq);
+                                }
+                                while(pframe_is_pinned(pf))
+                                {
+                                        pframe_unpin(pf);
+                                }
+                                if(pframe_is_dirty(pf))
+                                {
+                                        pframe_clean(pf);
+                                }
+                        }list_iterate_end();
+                        /*not sure about this*/
+                        pframe_free(pf);
+                        slab_obj_free(anon_allocator, o);
+                }
+        }
+        /*NOT_YET_IMPLEMENTED("VM: shadow_put");*/
 }
 
 /* This function looks up the given page in this shadow object. The
@@ -113,8 +143,60 @@ shadow_put(mmobj_t *o)
 static int
 shadow_lookuppage(mmobj_t *o, uint32_t pagenum, int forwrite, pframe_t **pf)
 {
-        NOT_YET_IMPLEMENTED("VM: shadow_lookuppage");
-        return 0;
+        pframe_t* result_pframe;
+        mmobj_t *entry = o;
+        if(!forwrite)
+        {
+                while((entry->mmo_shadowed)!=NULL)
+                {
+                        result_pframe=pframe_get_resident(entry,pagenum);
+                        if(result_pframe!=NULL)
+                                break;
+                        entry=entry->mmo_shadowed;
+                }
+                if(result_pframe!=NULL)
+                {
+                        if(pframe_is_busy(result_pframe))
+                        {
+                                sched_sleep_on(&result_pframe->pf_waitq);
+                        }
+                        *pf=result_pframe;
+                        return 0;
+                }
+                else 
+                {
+                        entry=mmobj_bottom_obj(o);
+                        result_pframe=pframe_get_resident(entry,pagenum);
+                        if(result_pframe!=NULL)
+                        {
+                                if(pframe_is_busy(result_pframe))
+                                {
+                                        sched_sleep_on(&result_pframe->pf_waitq);
+                                }
+                                *pf=result_pframe;
+                                return 0;
+                        }
+                        else 
+                        {
+                                return -1;
+                        }
+                }
+        }
+        else
+        {
+                pframe_get(entry,pagenum,&result_pframe);
+                if(result_pframe!=NULL)
+                {
+                        if(pframe_is_busy(result_pframe))
+                        {
+                                sched_sleep_on(&result_pframe->pf_waitq);
+                        }
+                        *pf=result_pframe;
+                        return 0;
+                }
+        }
+        /*NOT_YET_IMPLEMENTED("VM: shadow_lookuppage");
+        return 0;*/
 }
 
 /* As per the specification in mmobj.h, fill the page frame starting

@@ -122,10 +122,11 @@ anon_put(mmobj_t *o)
                                 }
                                 if(pframe_is_dirty(pf))
                                 {
-                                        pframe_free(pf);
+                                        pframe_clean(pf);
                                 }
                         }list_iterate_end();
                         /*not sure about this*/
+                        pframe_free(pf);
                         slab_obj_free(anon_allocator, o);
                 }
         }
