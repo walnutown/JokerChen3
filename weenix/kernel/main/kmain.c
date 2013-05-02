@@ -78,6 +78,8 @@ static context_t bootstrap_context;
 
 #define VFS_TEST                    10
 
+#define VM_TEST                     11
+
 static int CURRENT_TEST = VFS_TEST;
 
 /**
@@ -339,6 +341,8 @@ static void      *normal_test_run(int arg1, void *arg2);
 
 static void       vfs_test_run();
 
+static void       vm_test_run();
+
 static void *
 initproc_run(int arg1, void *arg2)
 {
@@ -378,6 +382,9 @@ initproc_run(int arg1, void *arg2)
             break;
         case VFS_TEST:
             vfs_test_run();
+            break;
+        case VM_TEST:
+            vm_test_run();
             break;
      }
 
@@ -1651,6 +1658,58 @@ vfs_test_run() {
     int status=0;
     proc_t * process=proc_create("vfs_process");
     kthread_t* thread=kthread_create(process,vfs_test,0,NULL);
+    sched_make_runnable(thread);
+
+    child=do_waitpid(-1,0,&status);
+    KASSERT(status==0);
+    dbg_print("process %d return.\n",(int)child);
+}
+
+
+
+
+
+
+
+/*******************************************************************************************
+ 
+
+
+ * Test for kernel assignment 3
+
+
+
+ *******************************************************************************************/
+
+/****************************** Function Test *********************************/ 
+
+void usrland_test()
+{
+    const char* filename="/sbin/init";
+    char *argv[] = { NULL };
+    char *envp[] = { NULL };
+    kernel_execve(filename,argv,envp);
+    return NULL;
+}
+
+
+ /****************************** Main *********************************/
+static void *
+vm_test() 
+{   
+    /* begin vm test*/
+    usrland_test();
+    
+    return 0;
+}
+
+static void
+vm_test_run() {
+    dbg(DBG_CORE,"Test VM_TEST\n");
+    pid_t child=0;
+    int status=0;
+    proc_t * process=proc_create("vm_process");
+    kthread_t* thread=kthread_create(process,vm_test,0,NULL);
     sched_make_runnable(thread);
 
     child=do_waitpid(-1,0,&status);
