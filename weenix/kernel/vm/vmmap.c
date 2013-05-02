@@ -590,6 +590,10 @@ vmmap_read(vmmap_t *map, const void *vaddr, void *buf, size_t count)
                                         uint32_t phy_addr = pt_virt_to_phys(PAGE_OFFSET(vaddr));
 
                                         memcpy(read_buf, (void*)phy_addr, page_size);
+
+                                        uint32_t read_buf_addr = (uint32_t)read_buf;
+                                        read_buf_addr += page_size;
+                                        read_buf = (void*)read_buf_addr;
                                 }
                                 else
                                 {
@@ -727,7 +731,109 @@ vmmap_read(vmmap_t *map, const void *vaddr, void *buf, size_t count)
 int
 vmmap_write(vmmap_t *map, void *vaddr, const void *buf, size_t count)
 {
-        
+        KASSERT(NULL != map);
+
+        /*** manipulate vfn ***/
+        uint32_t vfn_start = ADDR_TO_PN(vaddr);
+        uint32_t page_num = count / PAGE_SIZE;
+        uint32_t vfn_end = vfn_start + page_num;
+        /*uint32_t page_res = count - page_num * PAGE_SIZE;*/
+
+        size_t count_res = count;
+
+        uint32_t vfn = vfn_start;
+        vmarea_t *vma;
+        pframe_t *pframe;
+        const void *write_buf = buf;
+        /* [   *][****][*   ] page_num = 1 */
+        /* [    ][****][**  ] page_num = 1 */
+        /* [    ][ ** ][    ] page_num = 0 */
+        /* [    ][   *][*   ] page_num = 0 */
+        for(vfn = vfn_start; vfn_start <= vfn_end; ++vfn)
+        {
+                vma = vmmap_lookup(map, vfn);
+                if(vma)
+                {
+                        if(!pframe_get(vma->vma_obj, vfn, &pframe))
+                        {
+                                /* pframe_get sucess */
+                                if(vfn == vfn_start) 
+                                {
+                                        /* handle for first pageframe */
+                                        uint32_t vaddr_start = (uint32_t)(pframe->pf_addr);
+                                        uint32_t vaddr_end = vaddr_start + PAGE_SIZE;
+                                        uint32_t page_size = vaddr_end - (uint32_t)vaddr;
+                                        if(page_size > count)
+                                                page_size = count;
+
+                                        count_res -= page_size;
+
+                                        uint32_t phy_addr = pt_virt_to_phys(PAGE_OFFSET(vaddr));
+
+                                        memcpy((void*)phy_addr, write_buf, page_size);
+
+                                        uint32_t write_buf_addr = (uint32_t)write_buf;
+                                        write_buf_addr += page_size;
+                                        write_buf = (void*)write_buf_addr;
+
+                                        /* dirty page */
+                                        pframe_dirty(pframe);
+                                }
+                                else
+                                {
+                                        /* write whole page */
+                                        uint32_t phy_addr = pt_virt_to_phys(PAGE_OFFSET(pframe->pf_addr));
+                                        memcpy((void*)phy_addr, write_buf, PAGE_SIZE);
+                                        uint32_t write_buf_addr = (uint32_t)write_buf;
+                                        write_buf_addr += PAGE_SIZE;
+                                        write_buf = (void*)write_buf_addr;
+
+                                        count_res -= PAGE_SIZE;
+
+                                        /* dirty page */
+                                        pframe_dirty(pframe);
+                                }
+                        }
+                        else
+                        {
+                                return -EFAULT;
+                        }
+                }
+                else
+                {
+                        return -EFAULT;
+                } 
+        }
+        if(count_res > 0)
+        {
+                /* handle for last pageframe */
+                 vma = vmmap_lookup(map, vfn_end + 1);
+                 if(vma)
+                 {
+                        if(!pframe_get(vma->vma_obj, vfn, &pframe))
+                        {
+                                /* count_res should < PAGE_SIZE here */
+                                uint32_t vaddr_start = (uint32_t)(pframe->pf_addr);
+
+                                uint32_t phy_addr = pt_virt_to_phys(PAGE_OFFSET(vaddr_start));
+
+                                memcpy((void*)phy_addr, write_buf, count_res);
+
+                               /* dirty page */
+                                pframe_dirty(pframe);
+                        }
+                        else
+                        {
+                                return -EFAULT;
+                        }
+                 }
+                 else
+                 {
+                        return -EFAULT;
+                 }
+        }
+
+        return 0;
         /*NOT_YET_IMPLEMENTED("VM: vmmap_write");
         return 0;*/
 }
