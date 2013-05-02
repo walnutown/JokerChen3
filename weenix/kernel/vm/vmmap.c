@@ -151,52 +151,65 @@ vmmap_find_range(vmmap_t *map, uint32_t npages, int dir)
 {
         KASSERT(NULL != map);
 
+        /*** start: USER_MEM_LOW ***/ /* inclusive */
+        /*** end: USER_MEM_HIGH ***/ /* exclusive */
+        uint32_t page_num_low = ADDR_TO_PN(USER_MEM_LOW);
+        uint32_t page_num_high  = ADDR_TO_PN(USER_MEM_HIGH);
+
+        uint32_t page_no;
+
         if(!list_empty(&map->vmm_list)) {
                 /* vmarea_t *iterator; */
                 unsigned int pages;
                 /* high to low */
                 if(dir == VMMAP_DIR_HILO) {
                         /*** page or address? ***/
-                        /*list_iterate_reverse(&map->vmm_list, iterator, vmarea_t, vma_plink) {
-                                pages = iterator->vma_end - iterator->vma_start + 1;
-                                if(pages >= npages)
-                                        return iterator->vma_start;
-                        } list_iterate_end();*/
-
                         list_link_t *link;
                         for (link = (&map->vmm_list)->l_prev; link != &map->vmm_list; link = link->l_prev) {
-                                if(link->l_prev != &map->vmm_list) {
-                                        vmarea_t *vma = list_item(link, vmarea_t, vma_plink);
-                                        vmarea_t *prev_vma = list_item(link->l_prev, vmarea_t, vma_plink);
-                                        pages = vma->vma_start - prev_vma->vma_end;
-                                        if(pages >= npages)
-                                                return prev_vma->vma_end + 1;
+                                vmarea_t *vma = list_item(link, vmarea_t, vma_plink);
+                                if(link->l_next == &map->vmm_list) { /* last one */
+                                        pages = page_num_high - vma->vma_end;
+                                        page_no = vma->vma_end;
                                 }
-                                else {
-                                        break;
+                                else { /* find gap in middle */
+                                        vmarea_t *vma_next = list_item(link->l_next, vmarea_t, vma_plink);
+                                        pages = vma_next->vma_start - vma->vma_end;
+                                        page_no = vma->vma_end;   
                                 }
+                                if(pages >= npages)
+                                        return page_no;
+                        }
+                        if(link == &map->vmm_list) { /* first one */
+                                vmarea_t *vma = list_item(link, vmarea_t, vma_plink);
+                                pages = vma->vma_start - page_num_low;
+                                page_no = vma->vma_end;
+                                if(pages >= npages)
+                                        return page_no;
                         }
                 }
                 /* low to high */
                 if(dir == VMMAP_DIR_LOHI) {
-                        /*list_iterate_begin(&map->vmm_list, iterator, vmarea_t, vma_plink) {
-                                pages = iterator->vma_end - iterator->vma_start + 1;
-                                if(pages >= npages)
-                                        return iterator->vma_start;
-                        } list_iterate_end();*/
-
                         list_link_t *link;
                         for (link = (&map->vmm_list)->l_next; link != &map->vmm_list; link = link->l_next) {
-                                if(link->l_next != &map->vmm_list) {
-                                        vmarea_t *vma = list_item(link, vmarea_t, vma_plink);
-                                        vmarea_t *next_vma = list_item(link->l_next, vmarea_t, vma_plink);
-                                        pages = vma->vma_end - next_vma->vma_start;
-                                        if(pages >= npages)
-                                                return vma->vma_start + 1;
+                                vmarea_t *vma = list_item(link, vmarea_t, vma_plink);
+                                if(link->l_prev == &map->vmm_list) { /* first one */
+                                        pages = vma->vma_start - page_num_low;
+                                        page_no = page_num_low;
                                 }
-                                else {
-                                        break;
+                                else { /* find gap in middle */
+                                        vmarea_t *vma_prev = list_item(link->l_prev, vmarea_t, vma_plink);
+                                        pages = vma->vma_start - vma_prev->vma_end;
+                                        page_no = vma_prev->vma_end;
                                 }
+                                if(pages >= npages)
+                                        return page_no;
+                        }
+                        if(link == &map->vmm_list) { /* last one */
+                                vmarea_t *vma = list_item(link, vmarea_t, vma_plink);
+                                pages = page_num_high - vma->vma_end;
+                                page_no = vma->vma_end;
+                                if(pages >= npages)
+                                        return page_no;
                         }
                 }
         }
@@ -560,9 +573,9 @@ vmmap_read(vmmap_t *map, const void *vaddr, void *buf, size_t count)
 int
 vmmap_write(vmmap_t *map, void *vaddr, const void *buf, size_t count)
 {
-
-        NOT_YET_IMPLEMENTED("VM: vmmap_write");
-        return 0;
+        
+        /*NOT_YET_IMPLEMENTED("VM: vmmap_write");
+        return 0;*/
 }
 
 /* a debugging routine: dumps the mappings of the given address space. */
