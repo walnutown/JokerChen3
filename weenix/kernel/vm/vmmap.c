@@ -656,7 +656,7 @@ vmmap_read(vmmap_t *map, const void *vaddr, void *buf, size_t count)
 
                                         count_res -= page_size;
 
-                                        uint32_t phy_addr = pt_virt_to_phys(PAGE_OFFSET(vaddr));
+                                        uint32_t phy_addr = pt_virt_to_phys((uint32_t)(vaddr));
 
                                         memcpy(read_buf, (void*)phy_addr, page_size);
 
@@ -667,7 +667,7 @@ vmmap_read(vmmap_t *map, const void *vaddr, void *buf, size_t count)
                                 else
                                 {
                                         /* read whole page */
-                                        uint32_t phy_addr = pt_virt_to_phys(PAGE_OFFSET(pframe->pf_addr));
+                                        uint32_t phy_addr = pt_virt_to_phys((uint32_t)(pframe->pf_addr));
                                         memcpy(read_buf, (void*)phy_addr, PAGE_SIZE);
                                         uint32_t read_buf_addr = (uint32_t)read_buf;
                                         read_buf_addr += PAGE_SIZE;
@@ -699,7 +699,7 @@ vmmap_read(vmmap_t *map, const void *vaddr, void *buf, size_t count)
                                 /* count_res should < PAGE_SIZE here */
                                 uint32_t vaddr_start = (uint32_t)(pframe->pf_addr);
 
-                                uint32_t phy_addr = pt_virt_to_phys(PAGE_OFFSET(vaddr_start));
+                                uint32_t phy_addr = pt_virt_to_phys((uint32_t)(vaddr_start));
 
                                 memcpy(read_buf, (void*)phy_addr, count_res);
                         }
@@ -842,7 +842,7 @@ vmmap_write(vmmap_t *map, void *vaddr, const void *buf, size_t count)
 
                                         count_res -= page_size;
 
-                                        uint32_t phy_addr = pt_virt_to_phys(PAGE_OFFSET(vaddr));
+                                        uint32_t phy_addr = pt_virt_to_phys((uint32_t)(vaddr));
 
                                         memcpy((void*)phy_addr, write_buf, page_size);
 
@@ -856,7 +856,7 @@ vmmap_write(vmmap_t *map, void *vaddr, const void *buf, size_t count)
                                 else
                                 {
                                         /* write whole page */
-                                        uint32_t phy_addr = pt_virt_to_phys(PAGE_OFFSET(pframe->pf_addr));
+                                        uint32_t phy_addr = pt_virt_to_phys((uint32_t)(pframe->pf_addr));
                                         memcpy((void*)phy_addr, write_buf, PAGE_SIZE);
                                         uint32_t write_buf_addr = (uint32_t)write_buf;
                                         write_buf_addr += PAGE_SIZE;
@@ -891,7 +891,7 @@ vmmap_write(vmmap_t *map, void *vaddr, const void *buf, size_t count)
                                 /* count_res should < PAGE_SIZE here */
                                 uint32_t vaddr_start = (uint32_t)(pframe->pf_addr);
 
-                                uint32_t phy_addr = pt_virt_to_phys(PAGE_OFFSET(vaddr_start));
+                                uint32_t phy_addr = pt_virt_to_phys((uint32_t)(vaddr_start));
 
                                 memcpy((void*)phy_addr, write_buf, count_res);
 
