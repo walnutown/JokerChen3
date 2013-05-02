@@ -113,6 +113,7 @@ vmmap_insert(vmmap_t *map, vmarea_t *newvma)
         dbg(DBG_VFS,"VM: Enter vmmap_insert()\n");
         KASSERT(NULL != map && NULL != newvma);
         KASSERT(NULL == newvma->vma_vmmap);
+        dbg(DBG_VFS,"VM: In vmmap_insert(),newvma->vma_start=%d,newvma->vma_end=%d\n", newvma->vma_start, newvma->vma_end);
         KASSERT(newvma->vma_start < newvma->vma_end);
         KASSERT(ADDR_TO_PN(USER_MEM_LOW) <= newvma->vma_start && ADDR_TO_PN(USER_MEM_HIGH) >= newvma->vma_end);
     
@@ -132,14 +133,14 @@ vmmap_insert(vmmap_t *map, vmarea_t *newvma)
                                         newvma->vma_vmmap = map;
                                         /*** need collapse? ***/
                                         list_insert_before((&iterator->vma_plink)->l_next, &newvma->vma_plink);
-                                        dbg(DBG_VFS,"VM: Leave vmmap_destroy()\n");
+                                        dbg(DBG_VFS,"VM: Leave vmmap_insert()\n");
                                         return ;
                                 }
                                 else 
                                 {
                                         /*** how to deal with overlap? ***/
                                         /*** no overlap here! ***/
-                                        dbg(DBG_VFS,"VM: Leave vmmap_destroy(), overlap!!!\n");
+                                        dbg(DBG_VFS,"VM: Leave vmmap_insert(), overlap!!!\n");
                                         return ;
                                 }
                         }
@@ -152,7 +153,7 @@ vmmap_insert(vmmap_t *map, vmarea_t *newvma)
         {
                 newvma->vma_vmmap = map;
                 list_insert_head(&map->vmm_list, &newvma->vma_plink);
-                dbg(DBG_VFS,"VM: Leave vmmap_destroy()\n");
+                dbg(DBG_VFS,"VM: Leave vmmap_insert()\n");
                 return ;
         }
 
@@ -387,47 +388,59 @@ vmmap_map(vmmap_t *map, vnode_t *file, uint32_t lopage, uint32_t npages,
         /*set up new vmare except mmobj*/
         if(lopage==0)
         {
+            dbg(DBG_VFS,"VM: In vmmap_map(), lopage=0\n");
             int vfn_start=vmmap_find_range(map,npages,dir);
             if(vfn_start==-1)
             {
-                dbg(DBG_VFS,"VM: Leave vmmap_map(), error\n");
+                dbg(DBG_VFS,"VM: Leave vmmap_map(), error, cannot find range\n");
                 return -1;
             }
             newvma=vmarea_alloc();
             if(newvma==NULL)
             {
-                dbg(DBG_VFS,"VM: Leave vmmap_map(), error\n");
+                dbg(DBG_VFS,"VM: Leave vmmap_map(), error, alloc failed\n");
                 return -1;
             }
             newvma->vma_start=vfn_start;
             newvma->vma_end=vfn_start+npages;
+            dbg(DBG_VFS,"VM: In vmmap_map(), vfn_start=%d\n", vfn_start);
+            dbg(DBG_VFS,"VM: In vmmap_map(), vfn_start+npages=%d\n", vfn_start+npages);
         }
         else if(lopage!=0)
         {
+            dbg(DBG_VFS,"VM: In vmmap_map(), lopage!=0\n");
             if(!vmmap_is_range_empty(map,lopage,npages))
             {
+                dbg(DBG_VFS,"VM: In vmmap_map(), range is not empty\n");
                 err=vmmap_remove(map, lopage, npages);
                 if(err!=0)
                 {
-                    dbg(DBG_VFS,"VM: Leave vmmap_map(), error\n");
+                    dbg(DBG_VFS,"VM: Leave vmmap_map(), error in vmmap_remove\n");
                     return err;
                 }
             }
             newvma=vmarea_alloc();
             newvma->vma_start=lopage;
             newvma->vma_end=lopage+npages;
+            dbg(DBG_VFS,"VM: In vmmap_map(), lopage=%d\n", lopage);
+            dbg(DBG_VFS,"VM: In vmmap_map(), lopage+npages=%d\n", lopage+npages);
         }
         newvma->vma_prot=prot;
         newvma->vma_flags=flags;
         newvma->vma_off=off;
 
+        dbg(DBG_VFS,"VM: In vmmap_map(), prot=%d\n", prot);
+        dbg(DBG_VFS,"VM: In vmmap_map(), flags=%d\n", flags);
+        dbg(DBG_VFS,"VM: In vmmap_map(), off=%d\n", off);
+
         mmobj_t* obj;
         if(file==NULL)
         {
+            dbg(DBG_VFS,"VM: In vmmap_map(), file=NULL\n");
             obj=anon_create();
             if(obj==NULL)
             {
-                dbg(DBG_VFS,"VM: Leave vmmap_map(), error\n");
+                dbg(DBG_VFS,"VM: Leave vmmap_map(), error, anon create failed\n");
                 return -1;
             }
             /* not sure about above line, reference count increase 
@@ -438,20 +451,25 @@ vmmap_map(vmmap_t *map, vnode_t *file, uint32_t lopage, uint32_t npages,
         }
         else 
         {
+            dbg(DBG_VFS,"VM: In vmmap_map(), file!=NULL\n");
             if((err=(file->vn_ops->mmap)(file,newvma,&obj))<0)
             {
                 dbg(DBG_VFS,"VM: Leave vmmap_map(), error\n");
                 return err;
             }
+            dbg(DBG_VFS,"VM: In vmmap_map(), after\n");
             file->vn_mmobj=*obj;
         }
-
+        dbg(DBG_VFS,"VM: In vmmap_map(), after2\n");
         newvma->vma_obj=obj;
         if(flags==MAP_PRIVATE)
         {
+            dbg(DBG_VFS,"VM: In vmmap_map(), flags=MAP_PRIVATE\n");
             newvma->vma_obj->mmo_shadowed=shadow_create();
         }
-        *new=newvma;
+        dbg(DBG_VFS,"VM: In vmmap_map(), after3\n");
+        new=&newvma;
+        dbg(DBG_VFS,"VM: In vmmap_map(), after4\n");
         vmmap_insert(map,newvma);
         dbg(DBG_VFS,"VM: Leave vmmap_map()\n");
         return 0;
@@ -493,24 +511,26 @@ vmmap_map(vmmap_t *map, vnode_t *file, uint32_t lopage, uint32_t npages,
 int
 vmmap_remove(vmmap_t *map, uint32_t lopage, uint32_t npages)
 {
-        dbg(DBG_VFS,"VM: Enter vmmap_remove()\n");
+        dbg(DBG_VFS,"VM: Enter vmmap_remove(), lopage=%d, npages=%d\n", lopage, npages);
         if(!list_empty(&map->vmm_list)) 
         {
                 vmarea_t *iterator;
                 list_iterate_begin(&map->vmm_list, iterator, vmarea_t, vma_plink) 
                 {              
-                        if(lopage >= iterator->vma_start && lopage < iterator->vma_end) 
+                        if(lopage > iterator->vma_start && lopage < iterator->vma_end) 
                         {
                             /*case1 [   ******    ]*/
                             if((lopage+npages)>iterator->vma_start&&(lopage+npages)<=iterator->vma_end)
                             {
+                                dbg(DBG_VFS,"VM: In vmmap_remove(), case 1\n");
                                 vmarea_t * newvma1=vmarea_alloc();
                                 vmarea_t * newvma2=vmarea_alloc();
                                 if(!newvma1||!newvma2)
                                 {
-                                    dbg(DBG_VFS,"VM: Leave vmmap_remove()\n");
+                                    dbg(DBG_VFS,"VM: Leave vmmap_remove(), error 1\n");
                                     return -1;
                                 }
+                                dbg(DBG_VFS,"VM: In vmmap_remove(), lopage=%d, npages=%d\n", lopage, npages);
 
                                 newvma1->vma_start=iterator->vma_start;
                                 newvma1->vma_end=lopage;
@@ -534,18 +554,21 @@ vmmap_remove(vmmap_t *map, uint32_t lopage, uint32_t npages)
                             }
                             else /*case2 [      *******]** */
                             {
+                                dbg(DBG_VFS,"VM: In vmmap_remove(), case 2\n");
                                 iterator->vma_end=lopage;
                             }
                         }
                         /*case3  *[*****        ] */
                         else if((lopage+npages)>iterator->vma_start&&(lopage+npages)<=iterator->vma_end)
                         {
+                                dbg(DBG_VFS,"VM: In vmmap_remove(), case 3\n");
                                 iterator->vma_off=iterator->vma_off+(lopage+npages-iterator->vma_start);
                                 iterator->vma_start=lopage+npages;
                         }
                         /*case4  *[*************]** */
                         else if((iterator->vma_start>=lopage)&&(iterator->vma_end<=lopage+npages))
                         {
+                                dbg(DBG_VFS,"VM: In vmmap_remove(), case 4\n");
                                 list_remove(&iterator->vma_plink);
                                 vmarea_free(iterator);
                         }
