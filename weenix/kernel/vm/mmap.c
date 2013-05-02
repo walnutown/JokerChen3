@@ -115,21 +115,16 @@ do_mmap(void *addr, size_t len, int prot, int flags,
             return -EACCES; 
 		}
 
-		/* Given in google group */
-
-
 		/* Flushing the TLB */
 		int address = (uintptr_t)addr;
 		tlb_flush(address);
 
 		/* Calling the function vmmmap_map */
-
-		int i = vmmap_map(curproc->p_vmmap, curproc->p_files[fd]->f_vnode, 0, 0, prot, flags, off, NULL, (vmarea_t**)ret);
+		uint32_t lopage = ADDR_TO_PN(addr);
+		uint32_t npages = len / PAGE_SIZE + 1;
+		int i = vmmap_map(curproc->p_vmmap, curproc->p_files[fd]->f_vnode, lopage, npages, prot, flags, off, VMMAP_DIR_LOHI, (vmarea_t**)ret);
 		return 0;
 
-       
-		NOT_YET_IMPLEMENTED("VM: do_mmap");
-        return -1;
         /*NOT_YET_IMPLEMENTED("VM: do_mmap");
         return -1;*/
 }
@@ -145,7 +140,32 @@ do_mmap(void *addr, size_t len, int prot, int flags,
 int
 do_munmap(void *addr, size_t len)
 {
-        NOT_YET_IMPLEMENTED("VM: do_munmap");
-        return -1;
+		/* Ivalid addr */
+		if(PAGE_ALIGNED(addr)==0)
+		{
+			dbg(DBG_ERROR | DBG_VM, "ERROR: do_munmap: Invalid addr\n");
+            return -EINVAL; 
+		}
+
+		/* Invalid len, len should be not be NULL */
+		if (sizeof(len) == NULL)
+		{
+			dbg(DBG_ERROR | DBG_VM, "ERROR: do_munmap: Invalid prot\n");
+            return -EINVAL; 
+
+		}
+
+		/* Flushing the TLB */
+		int address = (uintptr_t)addr;
+		tlb_flush(address);
+
+		/* Calling the function vmmap_remove */
+		uint32_t lopage = ADDR_TO_PN(addr);
+		uint32_t npages = len / PAGE_SIZE + 1;
+		int i = vmmap_remove(curproc->p_vmmap, lopage, npages);
+		return 0;
+
+        /*NOT_YET_IMPLEMENTED("VM: do_munmap");
+        return -1;*/
 }
 

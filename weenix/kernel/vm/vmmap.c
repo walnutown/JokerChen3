@@ -232,7 +232,7 @@ vmmap_find_range(vmmap_t *map, uint32_t npages, int dir)
                         }
                 }
                 /* low to high */
-                if(dir == VMMAP_DIR_LOHI) 
+                else
                 {
                         list_link_t *link;
                         for (link = (&map->vmm_list)->l_next; link != &map->vmm_list; link = link->l_next) 
@@ -430,7 +430,6 @@ vmmap_map(vmmap_t *map, vnode_t *file, uint32_t lopage, uint32_t npages,
                 dbg(DBG_VFS,"VM: Leave vmmap_map(), error\n");
                 return -1;
             }
-            obj->mmo_ops->ref(obj);
             /* not sure about above line, reference count increase 
             newvma->vma_off = 0;
             newvma->vma_prot = PROT_NONE;    

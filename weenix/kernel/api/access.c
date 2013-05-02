@@ -122,8 +122,28 @@ fail:
  */
 int addr_perm(struct proc *p, const void *vaddr, int perm)
 {
-        NOT_YET_IMPLEMENTED("VM: ***none***");
-        return 0;
+        /* find vmarea of proc */
+        vmmap_t *vmmap = p->p_vmmap;
+        uint32_t addr = ADDR_TO_PN(vaddr);
+        vmarea_t *vmarea = vmmap_lookup(vmmap, addr);
+        if(vmarea)
+        {
+                int prot = vmarea->vma_prot;
+                if((prot & PROT_READ) == (perm & PROT_READ) &&
+                    (prot & PROT_WRITE) == (perm & PROT_WRITE) &&
+                    (prot & PROT_EXEC) == (perm & PROT_EXEC))
+                {
+                        return 1;
+                }
+                else
+                        return 0;
+        }
+        else
+                return 0;
+
+
+        /*NOT_YET_IMPLEMENTED("VM: ***none***");
+        return 0;*/
 }
 
 /*
@@ -137,6 +157,25 @@ int addr_perm(struct proc *p, const void *vaddr, int perm)
  */
 int range_perm(struct proc *p, const void *avaddr, size_t len, int perm)
 {
-        NOT_YET_IMPLEMENTED("VM: ***none***");
-        return 0;
+        vmmap_t *vmmap = p->p_vmmap;
+        const *vaddr = avaddr;
+        uint32_t addr_start = (uint32_t)vaddr;
+        int ret = 1;
+        size_t i = 0;
+        while(i < len)
+        {
+                int err;
+                if(err = addr_perm(p, vaddr, perm))
+                {
+                        vaddr++;
+                }
+                else
+                {
+                        ret = 0;
+                        break;
+                }
+        }
+        return ret;
+        /*NOT_YET_IMPLEMENTED("VM: ***none***");
+        return 0;*/
 }
