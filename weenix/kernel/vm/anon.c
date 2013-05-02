@@ -56,9 +56,12 @@ mmobj_t *
 anon_create()
 {
         mmobj_t * newanon=(mmobj_t *) slab_obj_alloc(anon_allocator);
-        mmobj_init(newanon, &anon_mmobj_ops);
-        /*** same thing ? ***/
-        newanon->mmo_un.mmo_vmas=*mmobj_bottom_vmas(newanon);
+        if(newanon)
+        {
+                mmobj_init(newanon, &anon_mmobj_ops);
+                newanon->mmo_un.mmo_vmas=*mmobj_bottom_vmas(newanon);
+                new_anon_obj->mmo_refcount++;
+        }
         return newanon;
         /*NOT_YET_IMPLEMENTED("VM: anon_create");
         return NULL;*/
@@ -94,32 +97,62 @@ anon_put(mmobj_t *o)
         }
         else
         {
-                pframe_t *pf;
-                list_iterate_begin(&(o->mmo_respages), pf, pframe_t,pf_olink)
+                if(!list_empty(&o->mmo_respages))
                 {
-                        pframe_clear_busy(pf);
-                        pframe_unpin(pf);
-                        pframe_free(pf);
-                }list_iterate_end();
-                slab_obj_free(anon_allocator, o);
+                        pframe_t *pf;
+                        list_iterate_begin(&(o->mmo_respages), pf, pframe_t,pf_olink)
+                        {
+                                if(pframe_is_busy(pf))
+                                {
+                                       sched_sleep_on(&pf->pf_waitq);
+                                }
+                                while(pframe_is_pinned(pf))
+                                {
+                                        pframe_unpin(&pf);
+                                }
+                                if(pframe_is_dirty(pf))
+                                {
+                                        pframe_free(pf);
+                                }
+                        }list_iterate_end();
+                        /*not sure about this*/
+                        slab_obj_free(anon_allocator, o);
+                }
         }
         /*NOT_YET_IMPLEMENTED("VM: anon_put");*/
 }
 
 /* Get the corresponding page from the mmobj. No special handling is
- * required. */
+ * required. 
+         *Finds the correct page frame from a high-level perspective
+         * for performing the given operation on an area backed by
+         * the given pagenum of the given object. If "forwrite" is
+         * specified then the pframe should be suitable for writing;
+         * otherwise, it is permitted not to support writes. In
+         * either case, it must correctly support reads.
+         *
+         * Most objects will simply return a page from their
+         * own list of pages, but objects such as shadow objects
+         * may need to perform more complicated operations to find
+         * the appropriate page.
+         * This may block.
+         * Return 0 on success and -errno otherwise. 
+         */
+ 
+
 static int
 anon_lookuppage(mmobj_t *o, uint32_t pagenum, int forwrite, pframe_t **pf)
 {
-        pframe_t *pframe;
-        list_iterate_begin(&(o->mmo_respages), pframe, pframe_t, pf_olink)
+        pframe_t *pframe=pframe_get_resident(o,pagenum);
+        if(pframe)
         {
-                if(pagenum==pframe->pf_pagenum)
+                if(pframe_is_busy(pg_frame))
                 {
-                        *pf=pframe;
-                        return 0;
+                        sched_sleep_on(&pf->pf_waitq);
                 }
-        }list_iterate_end();
+                *pf=pframe;
+                return 0;
+        }
         return -1;
         /*NOT_YET_IMPLEMENTED("VM: anon_lookuppage");
         return -1;*/
