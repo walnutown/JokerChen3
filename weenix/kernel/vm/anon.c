@@ -36,6 +36,7 @@ static mmobj_ops_t anon_mmobj_ops = {
  * anonymous page sub system. Currently it only initializes the
  * anon_allocator object.
  */
+ /*work*/
 void
 anon_init()
 {
@@ -50,6 +51,7 @@ anon_init()
  * macros which can be of use here. Make sure your initial
  * reference count is correct.
  */
+ /**/
 mmobj_t *
 anon_create()
 {

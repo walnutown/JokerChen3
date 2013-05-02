@@ -383,6 +383,7 @@ vmmap_map(vmmap_t *map, vnode_t *file, uint32_t lopage, uint32_t npages,
         KASSERT(PAGE_ALIGNED(off));
 
         int err;
+        vmarea_t * newvma;
         /*set up new vmare except mmobj*/
         if(lopage==0)
         {
@@ -392,7 +393,7 @@ vmmap_map(vmmap_t *map, vnode_t *file, uint32_t lopage, uint32_t npages,
                 dbg(DBG_VM,"VM: Leave vmmap_map(), error");
                 return -1;
             }
-            vmarea_t * newvma=vmarea_alloc();
+            newvma=vmarea_alloc();
             if(newvma==NULL)
             {
                 dbg(DBG_VM,"VM: Leave vmmap_map(), error");
@@ -412,7 +413,7 @@ vmmap_map(vmmap_t *map, vnode_t *file, uint32_t lopage, uint32_t npages,
                     return err;
                 }
             }
-            vmarea_t * newvma=vmarea_alloc();
+            newvma=vmarea_alloc();
             newvma->vma_start=lopage;
             newvma->vma_end=lopage+npages;
         }
@@ -420,7 +421,6 @@ vmmap_map(vmmap_t *map, vnode_t *file, uint32_t lopage, uint32_t npages,
         newvma->vma_flags=flags;
         newvma->off=off;
 
-        //set up mmobj
         mmobj_t* obj;
         if(file==NULL)
         {
@@ -503,7 +503,7 @@ vmmap_remove(vmmap_t *map, uint32_t lopage, uint32_t npages)
                         if(lopage >= iterator->vma_start && lopage < iterator->vma_end) 
                         {
                             /*case1 [   ******    ]*/
-                            if((lopage+npages)>vma_start&&(lopage+npages)<=iterator->vma_end)
+                            if((lopage+npages)>iterator->vma_start&&(lopage+npages)<=iterator->vma_end)
                             {
                                 vmarea_t * newvma1=vmarea_alloc();
                                 vmarea_t * newvma2=vmarea_alloc();
@@ -515,7 +515,7 @@ vmmap_remove(vmmap_t *map, uint32_t lopage, uint32_t npages)
 
                                 newvma1->vma_start=iterator->vma_start;
                                 newvma1->vma_end=lopage;
-                                newvma1->vma_off=vma->vma_off;
+                                newvma1->vma_off=iterator->vma_off;
                                 newvma1->vma_prot=iterator->vma_prot;
                                 newvma1->vma_flags=iterator->vma_flags;
                                 newvma1->vma_obj=iterator->vma_obj;
@@ -529,7 +529,7 @@ vmmap_remove(vmmap_t *map, uint32_t lopage, uint32_t npages)
                                 newvma2->vma_obj=iterator->vma_obj;
                                 (newvma2->vma_obj->mmo_ops->ref)(newvma2->vma_obj);
 
-                                list_remove(iterator->vma_plink);
+                                list_remove(&iterator->vma_plink);
                                 vmmap_insert(map,newvma1);
                                 vmmap_insert(map,newvma2);
                             }
@@ -545,9 +545,9 @@ vmmap_remove(vmmap_t *map, uint32_t lopage, uint32_t npages)
                                 iterator->vma_start=lopage+npages;
                         }
                         /*case4  *[*************]** */
-                        else if((vma_start>=lopage)&&(vma_end<=lopage+npages))
+                        else if((iterator->vma_start>=lopage)&&(iterator->vma_end<=lopage+npages))
                         {
-                                list_remove(iterator->vma_plink);
+                                list_remove(&iterator->vma_plink);
                                 vmarea_free(iterator);
                         }
 
@@ -568,7 +568,7 @@ vmmap_is_range_empty(vmmap_t *map, uint32_t startvfn, uint32_t npages)
 {
         dbg(DBG_VM,"VM: Enter vmmap_is_range_empty()");
         KASSERT(NULL != map);
-        KASSERT((startvfn < endvfn) && (ADDR_TO_PN(USER_MEM_LOW) <= startvfn) && (ADDR_TO_PN(USER_MEM_HIGH) >= endvfn));
+        /*KASSERT((startvfn < endvfn) && (ADDR_TO_PN(USER_MEM_LOW) <= startvfn) && (ADDR_TO_PN(USER_MEM_HIGH) >= endvfn));*/
         if(!list_empty(&map->vmm_list)) 
         {
                 vmarea_t *iterator;

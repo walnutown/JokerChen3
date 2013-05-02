@@ -101,11 +101,11 @@ handle_pagefault(uintptr_t vaddr, uint32_t cause)
 	pframe_t *result_pframe;
 	if(fault_vma->vma_flags==MAP_PRIVATE && fault_vma->vma_obj->mmo_shadowed!=NULL)
 	{
-		err=fault_vma->vma_obj->mmo_shadowed->mmo_ops->lookuppage(fault_vma->vma_obj->mmo_shadowed,ADDR_TO_PN(vaddr),cause&FAULT_WRITE,&result_pframe);
+		fault_vma->vma_obj->mmo_shadowed->mmo_ops->lookuppage(fault_vma->vma_obj->mmo_shadowed,ADDR_TO_PN(vaddr),cause&FAULT_WRITE,&result_pframe);
 	}
 	else if(fault_vma->vma_flags==MAP_SHARED)
 	{
-		err=fault_vma->vma_obj->mmo_ops->lookuppage(fault_vma->vma_obj,ADDR_TO_PN(vaddr),cause&FAULT_WRITE,&result_pframe);
+		fault_vma->vma_obj->mmo_ops->lookuppage(fault_vma->vma_obj,ADDR_TO_PN(vaddr),cause&FAULT_WRITE,&result_pframe);
 	}
 	uint32_t pdflags=FAULT_USER;
 	uint32_t ptflags=FAULT_USER;
