@@ -60,7 +60,7 @@ anon_create()
         {
                 mmobj_init(newanon, &anon_mmobj_ops);
                 newanon->mmo_un.mmo_vmas=*mmobj_bottom_vmas(newanon);
-                new_anon_obj->mmo_refcount++;
+                newanon->mmo_refcount++;
         }
         return newanon;
         /*NOT_YET_IMPLEMENTED("VM: anon_create");
@@ -108,7 +108,7 @@ anon_put(mmobj_t *o)
                                 }
                                 while(pframe_is_pinned(pf))
                                 {
-                                        pframe_unpin(&pf);
+                                        pframe_unpin(pf);
                                 }
                                 if(pframe_is_dirty(pf))
                                 {
@@ -146,9 +146,9 @@ anon_lookuppage(mmobj_t *o, uint32_t pagenum, int forwrite, pframe_t **pf)
         pframe_t *pframe=pframe_get_resident(o,pagenum);
         if(pframe)
         {
-                if(pframe_is_busy(pg_frame))
+                if(pframe_is_busy(pframe))
                 {
-                        sched_sleep_on(&pf->pf_waitq);
+                        sched_sleep_on(&pframe->pf_waitq);
                 }
                 *pf=pframe;
                 return 0;
