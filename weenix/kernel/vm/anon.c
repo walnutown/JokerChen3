@@ -82,7 +82,7 @@ anon_ref(mmobj_t *o)
         dbg(DBG_VFS,"VM: Enter anon_ref()\n");
         KASSERT(o && (0 < o->mmo_refcount) && (&anon_mmobj_ops == o->mmo_ops));
         o->mmo_refcount++;
-        dbg(DBG_VFS,"VM: Leave anon_ref()\n");
+        dbg(DBG_VFS,"VM: Leave anon_ref(), object = 0x%p , reference_count =%d, nrespages=%d\n",o,o->mmo_refcount,o->mmo_nrespages);
         /*NOT_YET_IMPLEMENTED("VM: anon_ref");*/
 }
 
