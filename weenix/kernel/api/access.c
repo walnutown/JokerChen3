@@ -158,16 +158,18 @@ int addr_perm(struct proc *p, const void *vaddr, int perm)
 int range_perm(struct proc *p, const void *avaddr, size_t len, int perm)
 {
         vmmap_t *vmmap = p->p_vmmap;
-        const *vaddr = avaddr;
+        const void *vaddr = avaddr;
         uint32_t addr_start = (uint32_t)vaddr;
         int ret = 1;
         size_t i = 0;
         while(i < len)
         {
                 int err;
-                if(err = addr_perm(p, vaddr, perm))
+                if((err = addr_perm(p, vaddr, perm)))
                 {
-                        vaddr++;
+                        uint32_t add = (uint32_t)vaddr;
+                        add++;
+                        vaddr = (void *)add;
                 }
                 else
                 {
