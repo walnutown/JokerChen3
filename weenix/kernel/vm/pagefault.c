@@ -66,11 +66,13 @@
 void
 handle_pagefault(uintptr_t vaddr, uint32_t cause)
 {
+	dbg(DBG_VFS,"VM: Enter handle_pagefault()\n");
 	vmarea_t *fault_vma=vmmap_lookup(curproc->p_vmmap, ADDR_TO_PN(vaddr));
 	/*find vmarea*/
 	if(fault_vma==NULL)
 	{
 		proc_kill(curproc, -EFAULT);
+		dbg(DBG_VFS,"VM: Leave handle_pagefault(), NULL\n");
 		return;
 	}/*check permission*/
 	else if(fault_vma->vma_prot&PROT_NONE)
@@ -78,6 +80,7 @@ handle_pagefault(uintptr_t vaddr, uint32_t cause)
 		if(!(cause&FAULT_RESERVED))
 		{
 			proc_kill(curproc, -EFAULT);
+			dbg(DBG_VFS,"VM: Leave handle_pagefault(), FAULT_RESERVED\n");
 			return;
 		}
 	}
@@ -86,6 +89,7 @@ handle_pagefault(uintptr_t vaddr, uint32_t cause)
 		if(!(cause&FAULT_EXEC))
 		{
 			proc_kill(curproc, -EFAULT);
+			dbg(DBG_VFS,"VM: Leave handle_pagefault(), FAULT_EXEC\n");
 			return;
 		}
 	}
@@ -94,6 +98,7 @@ handle_pagefault(uintptr_t vaddr, uint32_t cause)
 		if(!(cause&FAULT_WRITE))
 		{
 			proc_kill(curproc, -EFAULT);
+			dbg(DBG_VFS,"VM: Leave handle_pagefault(), FAULT_WRITE\n");
 			return;
 		}
 	}
@@ -123,5 +128,6 @@ handle_pagefault(uintptr_t vaddr, uint32_t cause)
 		vaddr=ADDR_TO_PN(vaddr)*PAGE_SIZE;
 	uintptr_t paddr = pt_virt_to_phys((uintptr_t)result_pframe->pf_addr);
 	pt_map(curproc->p_pagedir,vaddr,paddr,pdflags,ptflags);
+	dbg(DBG_VFS,"VM: Leave handle_pagefault()\n");
     /*NOT_YET_IMPLEMENTED("VM: handle_pagefault");*/
 }

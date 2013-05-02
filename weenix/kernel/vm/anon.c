@@ -40,8 +40,10 @@ static mmobj_ops_t anon_mmobj_ops = {
 void
 anon_init()
 {
+        dbg(DBG_VFS,"VM: Enter anon_init()\n");
         anon_allocator = slab_allocator_create("anon", sizeof(mmobj_t));
         KASSERT(NULL != anon_allocator && "failed to create anon allocator!");
+        dbg(DBG_VFS,"VM: Leave anon_init()\n");
         /*NOT_YET_IMPLEMENTED("VM: anon_init");*/
 }
 
@@ -55,6 +57,7 @@ anon_init()
 mmobj_t *
 anon_create()
 {
+        dbg(DBG_VFS,"VM: Enter anon_create()\n");
         mmobj_t * newanon=(mmobj_t *) slab_obj_alloc(anon_allocator);
         if(newanon)
         {
@@ -62,6 +65,7 @@ anon_create()
                 newanon->mmo_un.mmo_vmas=*mmobj_bottom_vmas(newanon);
                 newanon->mmo_refcount++;
         }
+        dbg(DBG_VFS,"VM: Leave anon_create()\n");
         return newanon;
         /*NOT_YET_IMPLEMENTED("VM: anon_create");
         return NULL;*/
@@ -75,7 +79,10 @@ anon_create()
 static void
 anon_ref(mmobj_t *o)
 {
+        dbg(DBG_VFS,"VM: Enter anon_ref()\n");
+        KASSERT(o && (0 < o->mmo_refcount) && (&anon_mmobj_ops == o->mmo_ops));
         o->mmo_refcount++;
+        dbg(DBG_VFS,"VM: Leave anon_ref()\n");
         /*NOT_YET_IMPLEMENTED("VM: anon_ref");*/
 }
 
@@ -90,9 +97,12 @@ anon_ref(mmobj_t *o)
 static void
 anon_put(mmobj_t *o)
 {
+        dbg(DBG_VFS,"VM: Enter anon_put()\n");
+        KASSERT(o && (0 < o->mmo_refcount) && (&anon_mmobj_ops == o->mmo_ops));       
         o->mmo_refcount--;
         if(o->mmo_refcount > o->mmo_nrespages)
         {
+                dbg(DBG_VFS,"VM: Leave anon_put(), o->mmo_refcount > o->mmo_nrespages\n");
                 return;
         }
         else
@@ -119,6 +129,7 @@ anon_put(mmobj_t *o)
                         slab_obj_free(anon_allocator, o);
                 }
         }
+        dbg(DBG_VFS,"VM: Leave anon_put()\n");
         /*NOT_YET_IMPLEMENTED("VM: anon_put");*/
 }
 
@@ -143,6 +154,7 @@ anon_put(mmobj_t *o)
 static int
 anon_lookuppage(mmobj_t *o, uint32_t pagenum, int forwrite, pframe_t **pf)
 {
+        dbg(DBG_VFS,"VM: Enter anon_lookuppage()\n");
         pframe_t *pframe=pframe_get_resident(o,pagenum);
         if(pframe)
         {
@@ -151,8 +163,10 @@ anon_lookuppage(mmobj_t *o, uint32_t pagenum, int forwrite, pframe_t **pf)
                         sched_sleep_on(&pframe->pf_waitq);
                 }
                 *pf=pframe;
+                dbg(DBG_VFS,"VM: Leave anon_lookuppage(), success\n");
                 return 0;
         }
+        dbg(DBG_VFS,"VM: Leave anon_lookuppage(), error\n");
         return -1;
         /*NOT_YET_IMPLEMENTED("VM: anon_lookuppage");
         return -1;*/
@@ -173,6 +187,8 @@ anon_lookuppage(mmobj_t *o, uint32_t pagenum, int forwrite, pframe_t **pf)
 static int
 anon_fillpage(mmobj_t *o, pframe_t *pf)
 {
+        dbg(DBG_VFS,"VM: Enter anon_fillpage()\n");
+        KASSERT(pframe_is_busy(pf));
         KASSERT(pf != NULL);
         uint32_t phy_addr = pt_virt_to_phys((uint32_t)(pf->pf_addr));
         memset((void*)phy_addr, 0, PAGE_SIZE);
@@ -182,7 +198,10 @@ anon_fillpage(mmobj_t *o, pframe_t *pf)
                 pframe_pin(pf);
         }
 
+        KASSERT(!pframe_is_pinned(pf));
+
         /*NOT_YET_IMPLEMENTED("VM: anon_fillpage");*/
+        dbg(DBG_VFS,"VM: Leave anon_fillpage()\n");
         return 0;
 }
 
