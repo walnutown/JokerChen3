@@ -67,7 +67,6 @@ void
 handle_pagefault(uintptr_t vaddr, uint32_t cause)
 {
 	vmarea_t *fault_vma=vmmap_lookup(curproc->p_vmmap, ADDR_TO_PN(vaddr));
-	int err=0;
 	/*find vmarea*/
 	if(fault_vma==NULL)
 	{
@@ -123,6 +122,6 @@ handle_pagefault(uintptr_t vaddr, uint32_t cause)
 	if(!PAGE_ALIGNED(vaddr))
 		vaddr=ADDR_TO_PN(vaddr)*PAGE_SIZE;
 	uintptr_t paddr = pt_virt_to_phys((uintptr_t)result_pframe->pf_addr);
-	pt_map(p_pagedir,vaddr,paddr,pdflags,ptflags);
+	pt_map(curproc->p_pagedir,vaddr,paddr,pdflags,ptflags);
     /*NOT_YET_IMPLEMENTED("VM: handle_pagefault");*/
 }
