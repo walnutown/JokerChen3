@@ -127,47 +127,36 @@ anon_lookuppage(mmobj_t *o, uint32_t pagenum, int forwrite, pframe_t **pf)
 
 /* The following three functions should not be difficult. */
 
-/* Fill the page frame starting at address pf->pf_paddr with the
- * contents of the page identified by pf->pf_obj and pf->pf_pagenum.
- * This may block.
- * Return 0 on success and -errno otherwise.
- */
+/* You need to remember that you are dealing with polymorphic code here.  
+   Since these functions are needed for other memory objects, you MUST 
+   implement them for anonymous objects.  If there's nothing to do for 
+   anonymous object, then do nothing!
+
+   One comment about your last question...  Anonymous object points to 
+   a page of zeros.  I'm not sure why you said that it is not associated a 
+   physical page.  (Of course, you can never modify the memory associated 
+   with an anonymous object.  So, you cannot dirty the page.)
+*/
 static int
 anon_fillpage(mmobj_t *o, pframe_t *pf)
 {
-        
-        NOT_YET_IMPLEMENTED("VM: anon_fillpage");
+        KASSERT(pf != NULL);
+        uint32_t phy_addr = pt_virt_to_phys((uint32_t)(pf->pf_addr));
+        memset((void*)phy_addr, 0, PAGE_SIZE);
+        /*NOT_YET_IMPLEMENTED("VM: anon_fillpage");*/
         return 0;
 }
 
-/* A hook; called when a request is made to dirty a non-dirty page.
- * Perform any necessary actions that must take place in order for it
- * to be possible to dirty (write to) the provided page. (For example,
- * if this page corresponds to a sparse block of a file that belongs to
- * an S5 filesystem, it would be necessary/desirable to allocate a
- * block in the fs before allowing a write to the block to proceed).
- * This may block.
- * Return 0 on success and -errno otherwise.
- */
 static int
 anon_dirtypage(mmobj_t *o, pframe_t *pf)
 {
-        
-        NOT_YET_IMPLEMENTED("VM: anon_dirtypage");
+        /*NOT_YET_IMPLEMENTED("VM: anon_dirtypage");*/
         return -1;
 }
 
-/*
- * Write the contents of the page frame starting at address
- * pf->pf_paddr to the page identified by pf->pf_obj and
- * pf->pf_pagenum.
- * This may block.
- * Return 0 on success and -errno otherwise.
- */
 static int
 anon_cleanpage(mmobj_t *o, pframe_t *pf)
 {
-        
-        NOT_YET_IMPLEMENTED("VM: anon_cleanpage");
+        /*NOT_YET_IMPLEMENTED("VM: anon_cleanpage");*/
         return -1;
 }
