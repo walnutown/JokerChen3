@@ -109,11 +109,12 @@ anon_put(mmobj_t *o)
 static int
 anon_lookuppage(mmobj_t *o, uint32_t pagenum, int forwrite, pframe_t **pf)
 {
-        list_iterate_begin(&vn->vn_mmobj.mmo_respages, vp, pframe_t,pf_olink)
+        pframe_t *pframe;
+        list_iterate_begin(&(o->mmo_respages), pframe, pframe_t, pf_olink)
         {
-                if(pagenum==vp->pf_pagenum)
+                if(pagenum==pframe->pf_pagenum)
                 {
-                        *pf=vp;
+                        *pf=pframe;
                         return 0;
                 }
         }list_iterate_end();
