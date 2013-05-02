@@ -55,6 +55,7 @@ vmarea_free(vmarea_t *vma)
 
 /* Create a new vmmap, which has no vmareas and does
  * not refer to a process. */
+/*work*/
 vmmap_t *
 vmmap_create(void)
 {
@@ -73,6 +74,7 @@ vmmap_create(void)
     
 /* Removes all vmareas from the address space and frees the
  * vmmap struct. */
+/*Changed*/
 void
 vmmap_destroy(vmmap_t *map)
 {
@@ -80,12 +82,13 @@ vmmap_destroy(vmmap_t *map)
 
         if(!list_empty(&map->vmm_list)) {
                 vmarea_t *iterator;
-                list_iterate_begin(&map->vmm_list, iterator, vmarea_t, vma_plink) {              
+                list_iterate_begin(&map->vmm_list, iterator, vmarea_t, vma_plink) {  
+                        list_remove(&iterator->vma_plink);
                         vmarea_free(iterator);
                 } list_iterate_end();
         }
+        map->vmm_proc=NULL;
         slab_obj_free(vmmap_allocator, map);
-
         /*
         NOT_YET_IMPLEMENTED("VM: vmmap_destroy");
         */

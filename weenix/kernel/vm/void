@@ -1,0 +1,38 @@
+void
+vmmap_insert(vmmap_t *map, vmarea_t *newvma)
+{
+/*        NOT_YET_IMPLEMENTED("VM: vmmap_insert"); checkpoint_3 */
+    KASSERT(NULL != map && NULL != newvma);
+    KASSERT(NULL == newvma->vma_vmmap);
+    KASSERT(newvma->vma_start < newvma->vma_end);
+    KASSERT(ADDR_TO_PN(USER_MEM_LOW) <= newvma->vma_start && ADDR_TO_PN(USER_MEM_HIGH) >= newvma->vma_end);
+
+    if(list_empty(&map->vmm_list)) {
+        list_insert_head(&map->vmm_list, newvma->vma_plink);
+        newvma->vma_vmmap = map;
+        return;
+    }
+    vmarea_t *iter;
+    vmarea_t *insert_iter;
+    list_iterate_begin(&map->vmm_list, iter, vmarea_t, vma_plink) {
+        if( (iter->vma_start >= newvma->vma_start && iter->vma_start =< newvma->vma_end) 
+            || (iter->vma_end >= newvma->vma_start && iter->vma_end =< newvma->vma_end) ) {
+            /*Overlap deal*/
+            return;
+        }
+    } list_iterate_end();
+    /* No Overlap*/
+    list_iterate_begin(&map->vmm_list, insert_iter, vmarea_t, vma_plink) {
+        if(insert_iter->vma_start > newvma->vma_start) {
+            list_insert_before(insert_iter->vma_plink, newvma->vma_plink);
+            newvma->vma_vmmap = map;
+            return;
+        }
+    } list_iterate_end();
+    list_insert_tail(&map->vmm_list, newvma->vma_plink);
+    newvma->vma_vmmap = map;
+    return;
+}
+
+
+
