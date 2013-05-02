@@ -74,7 +74,7 @@ vmmap_create(void)
     
 /* Removes all vmareas from the address space and frees the
  * vmmap struct. */
-/*Changed*/
+/*Changed work*/
 void
 vmmap_destroy(vmmap_t *map)
 {
@@ -98,7 +98,7 @@ vmmap_destroy(vmmap_t *map)
  * the vmarea is valid.  This involves finding where to put it in the list
  * of VM areas, and adding it. Don't forget to set the vma_vmmap for the
  * area. */
- /*work*/
+ /*Changed work*/
 void
 vmmap_insert(vmmap_t *map, vmarea_t *newvma)
 {
@@ -115,7 +115,7 @@ vmmap_insert(vmmap_t *map, vmarea_t *newvma)
                         if(vma_start > iterator->vma_start) 
                         {
                                 /* no two ranges overlap with each other */
-                                if(vma_start > iterator->vma_end) 
+                                if(vma_start >= iterator->vma_end) 
                                 {
                                         /* set the vma_vmmap for the area */
                                         newvma->vma_vmmap = map;
@@ -161,7 +161,7 @@ vmmap_insert(vmmap_t *map, vmarea_t *newvma)
    given address space.  If the direction is from low to high, you 
    should start looking from an address as low as possible in the 
    given address space. */
-   /**/
+   /*work*/
 int
 vmmap_find_range(vmmap_t *map, uint32_t npages, int dir)
 {
@@ -256,10 +256,13 @@ vmmap_lookup(vmmap_t *map, uint32_t vfn)
 {
         KASSERT(NULL != map);
 
-        if(!list_empty(&map->vmm_list)) {
+        if(!list_empty(&map->vmm_list)) 
+        {
                 vmarea_t *iterator;
-                list_iterate_begin(&map->vmm_list, iterator, vmarea_t, vma_plink) {              
-                        if(vfn >= iterator->vma_start && vfn <= iterator->vma_end) {
+                list_iterate_begin(&map->vmm_list, iterator, vmarea_t, vma_plink) 
+                {              
+                        if(vfn >= iterator->vma_start && vfn < iterator->vma_end) 
+                        {
                             return iterator;
                         }
                 } list_iterate_end();
@@ -275,16 +278,29 @@ vmmap_lookup(vmmap_t *map, uint32_t vfn)
  * given map. The areas should have no mmobjs set yet. Returns pointer
  * to the new vmmap on success, NULL on failure. This function is
  * called when implementing fork(2). */
+ /*Big Changed work*/
 vmmap_t *
 vmmap_clone(vmmap_t *map)
 {
         KASSERT(NULL != map);
 
-        vmmap_t *clonevmm = (vmmap_t *)slab_obj_alloc(vmmap_allocator);
-        clonevmm->vmm_proc = map->vmm_proc;
-
-        /*** copy vmarea? ***/
-
+        /*vmmap_t *clonevmm = (vmmap_t *)slab_obj_alloc(vmmap_allocator);*/
+        vmmap_t *clonevmm=vmmap_create();
+        if(clonevmm)
+        {
+            vmarea_t* newvma;
+            list_iterate_begin(&map->vmm_list, iterator, vmarea_t, vma_plink)
+            {
+                newvma=vmarea_alloc();
+                if(!newvma)
+                    return NULL;
+                newvma->vma_start=iterator->vma_start;
+                newvma->vma_end=iterator->vma_end;
+                newvma->vma_prot=iterator->vma_prot;
+                newvma->vma_flags=iterator->vma_flags;
+                vmmap_insert(clonevmm,newvma);
+            }list_iterate_end();
+        }
         return clonevmm;
 
         /*
@@ -330,8 +346,10 @@ vmmap_map(vmmap_t *map, vnode_t *file, uint32_t lopage, uint32_t npages,
             if(vfn_start==-1)
                 return -1;
             vmarea_t * newvma=vmarea_alloc();
+            if(newvma==NULL)
+                return -1;
             newvma->vma_start=vfn_start;
-            newvma->vma_end=vfn_start+npages-1;
+            newvma->vma_end=vfn_start+npages;
         }
         else if(lopage!=0)
         {
