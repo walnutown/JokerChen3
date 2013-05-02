@@ -551,65 +551,164 @@ vmmap_read(vmmap_t *map, const void *vaddr, void *buf, size_t count)
 {
         KASSERT(NULL != map);
 
+        /*** manipulate vfn ***/
+        uint32_t vfn_start = ADDR_TO_PN(vaddr);
+        uint32_t page_num = count / PAGE_SIZE;
+        uint32_t vfn_end = vfn_start + page_num;
+        /*uint32_t page_res = count - page_num * PAGE_SIZE;*/
+
+        size_t count_res = count;
+
+        uint32_t vfn = vfn_start;
+        vmarea_t *vma;
+        pframe_t *pframe;
+        void *read_buf = buf;
+        /* [   *][****][*   ] page_num = 1 */
+        /* [    ][****][**  ] page_num = 1 */
+        /* [    ][ ** ][    ] page_num = 0 */
+        /* [    ][   *][*   ] page_num = 0 */
+        for(vfn = vfn_start; vfn_start <= vfn_end; ++vfn)
+        {
+                vma = vmmap_lookup(map, vfn);
+                if(vma)
+                {
+                        if(!pframe_get(vma->vma_obj, vfn, &pframe))
+                        {
+                                /* pframe_get sucess */
+                                if(vfn == vfn_start) 
+                                {
+                                        /* handle for first pageframe */
+                                        uint32_t vaddr_start = (uint32_t)(pframe->pf_addr);
+                                        uint32_t vaddr_end = vaddr_start + PAGE_SIZE;
+                                        uint32_t page_size = vaddr_end - (uint32_t)vaddr;
+                                        if(page_size > count)
+                                                page_size = count;
+
+                                        count_res -= page_size;
+
+                                        uint32_t phy_addr = pt_virt_to_phys(PAGE_OFFSET(vaddr));
+
+                                        memcpy(read_buf, (void*)phy_addr, page_size);
+                                }
+                                else
+                                {
+                                        /* read whole page */
+                                        uint32_t phy_addr = pt_virt_to_phys(PAGE_OFFSET(pframe->pf_addr));
+                                        memcpy(read_buf, (void*)phy_addr, PAGE_SIZE);
+                                        uint32_t read_buf_addr = (uint32_t)read_buf;
+                                        read_buf_addr += PAGE_SIZE;
+                                        read_buf = (void*)read_buf_addr;
+
+                                        count_res -= PAGE_SIZE;
+                                }
+                        }
+                        else
+                        {
+                                return -EFAULT;
+                        }
+                }
+                else
+                {
+                        return -EFAULT;
+                } 
+        }
+        if(count_res > 0)
+        {
+                /* handle for last pageframe */
+                 vma = vmmap_lookup(map, vfn_end + 1);
+                 if(vma)
+                 {
+                        if(!pframe_get(vma->vma_obj, vfn, &pframe))
+                        {
+                                /* count_res should < PAGE_SIZE here */
+                                uint32_t vaddr_start = (uint32_t)(pframe->pf_addr);
+
+                                uint32_t phy_addr = pt_virt_to_phys(PAGE_OFFSET(vaddr_start));
+
+                                memcpy(read_buf, (void*)phy_addr, count_res);
+                        }
+                        else
+                        {
+                                return -EFAULT;
+                        }
+                 }
+                 else
+                 {
+                        return -EFAULT;
+                 }
+        }
+
+        return 0;
+
+        /*** manipulate address ***/
+        /*
         void *end_addr = vaddr + count;
         size_t offset = 0;
-        size_t rest = count;
         if(!list_empty(&map->vmm_list)) {
                 vmarea_t *vmarea;
                 mmobj_t *obj;
                 list_iterate_begin(&map->vmm_list, vmarea, vmarea_t, vma_plink) {
+        */
                         /* search in pframe list */
+        /*
                         obj = vmarea->vma_obj;
                         pframe_t *pframe;
                         if(!list_empty(&obj->mmo_respages)) {
                                 list_iterate_begin(&obj->mmo_respages, pframe, pframe_t, pf_olink) {
+        */
                                         /* check the vitural address */
                                         /*** get warning: pointer of type ‘void *’ used in arithmetic!!! ***/
+        /*
                                         void *pf_end_addr = pframe->pf_addr + PAGE_SIZE;
                                         void *buf_start = (void *)(buf + offset);
-                                        size_t read_length = 0;
-                                        uintptr_t phy_addr;
                                         if(vaddr <= pframe->pf_addr && end_addr >= pf_end_addr) {
+        */
                                                 /* **[*****]** */
                                                 /* read whole page */
-                                                phy_addr = pt_virt_to_phys((uintptr_t)pframe->pf_addr);
-                                                read_length = PAGE_SIZE;
-                                           }
+        /*
+                                                uintptr_t phy_addr = pt_virt_to_phys((uintptr_t)pframe->pf_addr);
+                                                memcpy(buf_start, (void *)phy_addr, PAGE_SIZE);
+                                                offset += PAGE_SIZE;
+                                        }
                                         else if(vaddr >= pframe->pf_addr && end_addr >= pf_end_addr) {
+        */
                                                 /* [  **]** */
-                                                phy_addr = pt_virt_to_phys((uintptr_t)vaddr);
-                                                read_length = (size_t)(pf_end_addr - vaddr);
+        /*
+                                                uintptr_t phy_addr = pt_virt_to_phys((uintptr_t)vaddr);
+                                                size_t read_length = (size_t)(pf_end_addr - vaddr);
+                                                memcpy(buf_start, (void *)phy_addr, read_length);
+                                                offset += read_length;
                                         }
-                                        else if(vaddr <= pframe->pf_addr && end_addr <= pf_end_addr) {
+                                        else if(vaddr <= pframe->pf_addr && end_addr < pf_end_addr) {
+        */
                                                 /* ***[*** ] */
-                                                phy_addr = pt_virt_to_phys((uintptr_t)pframe->pf_addr);
-                                                read_length = (size_t)(end_addr - pframe->pf_addr);
-                                        }
-                                        else if(vaddr >= pframe->pf_addr && end_addr <= pf_end_addr) {
-                                                /* [ *** ] */
-                                                phy_addr = pt_virt_to_phys((uintptr_t)vaddr);
-                                                read_length = count;
-                                        }
-                                        memcpy(buf_start, (void *)phy_addr, PAGE_SIZE);
-                                        offset += read_length;
-                                        rest -= read_length;
-                                        if(rest == 0) {
-                                                /* read finished */
+        /*
+                                                uintptr_t phy_addr = pt_virt_to_phys((uintptr_t)pframe->pf_addr);
+                                                size_t read_length = (size_t)(end_addr - pframe->pf_addr);
+                                                memcpy(buf_start, (void *)phy_addr, read_length);
+        */
+                                                /* read finished case */
+        /*
                                                 return 0;
                                         }
                                 } list_iterate_end();
                         }
                         
                 } list_iterate_end();
+        */
                 /*** return error ***/
+        /*
 
         }
         else {
+        */
                 /*** return error ***/
+        /*
 
         }
 
         return 0;
+        */
         /*
         NOT_YET_IMPLEMENTED("VM: vmmap_read");
         return 0;
