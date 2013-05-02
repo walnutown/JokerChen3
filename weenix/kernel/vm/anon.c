@@ -54,8 +54,10 @@ mmobj_t *
 anon_create()
 {
         mmobj_t * newanon=(mmobj_t *) slab_obj_alloc(anon_allocator);
-        mmobj_init(newanon,anon_mmobj_ops);
-        newanon->mmo_un.mmo_vmas=mmobj_bottom_vmas(newanon);
+        mmobj_init(newanon, &anon_mmobj_ops);
+        /*** same thing ? ***/
+        newanon->mmo_un.mmo_vmas=*mmobj_bottom_vmas(newanon);
+        return newanon;
         /*NOT_YET_IMPLEMENTED("VM: anon_create");
         return NULL;*/
 }
@@ -83,17 +85,19 @@ anon_ref(mmobj_t *o)
 static void
 anon_put(mmobj_t *o)
 {
-        if((o->mmo_refcount--))>o->mmo_nrespages)
+        o->mmo_refcount--;
+        if(o->mmo_refcount > o->mmo_nrespages)
         {
                 return;
         }
         else
         {
-                list_iterate_begin(&vn->vn_mmobj.mmo_respages, vp, pframe_t,pf_olink)
+                pframe_t *pf;
+                list_iterate_begin(&(o->mmo_respages), pf, pframe_t,pf_olink)
                 {
-                        pframe_clear_busy(vp);
-                        pframe_unpin(vp);
-                        pframe_free(vp);
+                        pframe_clear_busy(pf);
+                        pframe_unpin(pf);
+                        pframe_free(pf);
                 }list_iterate_end();
                 slab_obj_free(anon_allocator, o);
         }
