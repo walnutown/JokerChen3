@@ -133,18 +133,18 @@ vmmap_insert(vmmap_t *map, vmarea_t *newvma)
                                         /*** need collapse? ***/
                                         list_insert_before((&iterator->vma_plink)->l_next, &newvma->vma_plink);
                                         dbg(DBG_VM,"VM: Leave vmmap_destroy()");
-                                        return 0;
+                                        return ;
                                 }
                                 else 
                                 {
                                         /*** how to deal with overlap? ***/
                                         /*** no overlap here! ***/
                                         dbg(DBG_VM,"VM: Leave vmmap_destroy(), overlap!!!");
-                                        return -1;
+                                        return ;
                                 }
                         }
                 } list_iterate_end();
-                list_insert_tail(&map->vmm_list, newvma->vma_plink);
+                list_insert_tail(&map->vmm_list, &newvma->vma_plink);
                 newvma->vma_vmmap = map;
                 return;
         }
@@ -153,7 +153,7 @@ vmmap_insert(vmmap_t *map, vmarea_t *newvma)
                 newvma->vma_vmmap = map;
                 list_insert_head(&map->vmm_list, &newvma->vma_plink);
                 dbg(DBG_VM,"VM: Leave vmmap_destroy()");
-                return 0;
+                return ;
         }
 
         /*
@@ -419,7 +419,7 @@ vmmap_map(vmmap_t *map, vnode_t *file, uint32_t lopage, uint32_t npages,
         }
         newvma->vma_prot=prot;
         newvma->vma_flags=flags;
-        newvma->off=off;
+        newvma->vma_off=off;
 
         mmobj_t* obj;
         if(file==NULL)
@@ -539,7 +539,7 @@ vmmap_remove(vmmap_t *map, uint32_t lopage, uint32_t npages)
                             }
                         }
                         /*case3  *[*****        ] */
-                        else if((lopage+npages)>vma_start&&(lopage+npages)<=iterator->vma_end)
+                        else if((lopage+npages)>iterator->vma_start&&(lopage+npages)<=iterator->vma_end)
                         {
                                 iterator->vma_off=iterator->vma_off+(lopage+npages-iterator->vma_start);
                                 iterator->vma_start=lopage+npages;
