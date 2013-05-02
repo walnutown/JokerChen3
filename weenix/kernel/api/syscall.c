@@ -89,7 +89,7 @@ sys_read(read_args_t *arg)
                 curthr->kt_errno = -ret;
                 return -1;
         }
-        if ( (err = copy_to_user(arg->buf, temp_buffer, ret) < 0 ) 
+        if ( (err = copy_to_user(arg->buf, temp_buffer, ret))< 0 ) 
         {
                 page_free(temp_buffer);
                 curthr->kt_errno = -err;
@@ -140,7 +140,7 @@ sys_write(write_args_t *arg)
                 curthr->kt_errno = -ret;
                 return -1;
         }
-        if ( (err = copy_to_user(arg->buf, temp_buffer, ret) < 0 ) 
+        if ( (err = copy_to_user(arg->buf, temp_buffer, ret)) < 0 ) 
         {
                 page_free(temp_buffer);
                 curthr->kt_errno = -err;
