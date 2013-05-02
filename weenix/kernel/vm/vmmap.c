@@ -44,7 +44,7 @@ vmarea_alloc(void)
         if (newvma) {
                 newvma->vma_vmmap = NULL;
         }
-        dbg(DBG_VFS,"VM: Leave vmarea_alloc()");
+        dbg(DBG_VFS,"VM: Leave vmarea_alloc()\n");
         return newvma;
 }
 
@@ -96,7 +96,7 @@ vmmap_destroy(vmmap_t *map)
         }
         map->vmm_proc=NULL;
         slab_obj_free(vmmap_allocator, map);
-        dbg(DBG_VFS,"VM: Leave vmmap_destroy()");
+        dbg(DBG_VFS,"VM: Leave vmmap_destroy()\n");
         /*
         NOT_YET_IMPLEMENTED("VM: vmmap_destroy");
         */
@@ -292,12 +292,12 @@ vmmap_lookup(vmmap_t *map, uint32_t vfn)
                 {              
                         if(vfn >= iterator->vma_start && vfn < iterator->vma_end) 
                         {
-                            dbg(DBG_VFS,"VM: Leave vmmap_lookup(), found!");
+                            dbg(DBG_VFS,"VM: Leave vmmap_lookup(), found!\n");
                             return iterator;
                         }
                 } list_iterate_end();
         }
-        dbg(DBG_VFS,"VM: Leave vmmap_lookup(), not found!");
+        dbg(DBG_VFS,"VM: Leave vmmap_lookup(), not found!\n");
         return NULL;
         /*
         NOT_YET_IMPLEMENTED("VM: vmmap_lookup");
