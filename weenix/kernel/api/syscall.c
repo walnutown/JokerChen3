@@ -64,7 +64,7 @@ typedef struct read_args {
 static int
 sys_read(read_args_t *arg)
 {
-        NOT_YET_IMPLEMENTED("VM: sys_read");
+        /*NOT_YET_IMPLEMENTED("VM: sys_read");*/
 
         /* copy_from_user() the read_args_t */
         read_args_t            karg;
@@ -115,7 +115,7 @@ typedef struct write_args
 static int
 sys_write(write_args_t *arg)
 {
-        NOT_YET_IMPLEMENTED("VM: sys_write");
+        /*NOT_YET_IMPLEMENTED("VM: sys_write");*/
 
         /* copy_from_user() the write_args_t */
         write_args_t            karg;
