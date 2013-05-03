@@ -65,6 +65,7 @@ shadow_init()
 mmobj_t *
 shadow_create()
 {
+        dbg(DBG_VFS,"VM: Enter shadow_create()\n");
         mmobj_t *shadow_obj = (mmobj_t*)slab_obj_alloc(shadow_allocator);
         if(shadow_obj)
         {
@@ -72,6 +73,7 @@ shadow_create()
                 (shadow_obj)->mmo_un.mmo_bottom_obj=mmobj_bottom_obj(shadow_obj);
                 shadow_obj->mmo_refcount++;
         }
+        dbg(DBG_VFS,"VM: Leave shadow_create()\n");
         return shadow_obj;
         /*NOT_YET_IMPLEMENTED("VM: shadow_create");
         return NULL;*/
@@ -85,7 +87,10 @@ shadow_create()
 static void
 shadow_ref(mmobj_t *o)
 {
+        dbg(DBG_VFS,"VM: Enter shadow_ref(), reference_count =%d, nrespages=%d\n", o->mmo_refcount,o->mmo_nrespages);
+        KASSERT(o && (0 < o->mmo_refcount) && (&shadow_mmobj_ops == o->mmo_ops));
         o->mmo_refcount++;
+        dbg(DBG_VFS,"VM: Leave shadow_ref(), reference_count =%d, nrespages=%d\n", o->mmo_refcount,o->mmo_nrespages);
         /*NOT_YET_IMPLEMENTED("VM: shadow_ref");*/
 }
 
@@ -210,8 +215,29 @@ shadow_lookuppage(mmobj_t *o, uint32_t pagenum, int forwrite, pframe_t **pf)
 static int
 shadow_fillpage(mmobj_t *o, pframe_t *pf)
 {
-        NOT_YET_IMPLEMENTED("VM: shadow_fillpage");
-        return 0;
+        KASSERT(pframe_is_busy(pf));
+        KASSERT(!pframe_is_pinned(pf));
+        dbg(DBG_VFS,"Enter shadow_fillpage(), destinaiton object: 0x%p, pf->pf_pagenum: %d\n",o,pf->pf_pagenum);
+        pframe_t *pframe;
+        /* look for the source page frame */
+        int ret = shadow_lookuppage(o->mmo_shadowed,pf->pf_pagenum,0,&pframe);
+        if(ret == 0)
+        {
+                if(pframe)
+                {
+                        memcpy(pf->pf_addr,pframe->pf_addr,PAGE_SIZE);
+                }
+                else
+                {
+                        return -EFAULT;
+                }          
+             
+        }
+        else 
+                return -1;
+        dbg(DBG_VFS,"Fillpage operation completed\n");
+        /*NOT_YET_IMPLEMENTED("VM: shadow_fillpage");
+        return 0;*/
 }
 
 /* These next two functions are not difficult. */
@@ -219,13 +245,42 @@ shadow_fillpage(mmobj_t *o, pframe_t *pf)
 static int
 shadow_dirtypage(mmobj_t *o, pframe_t *pf)
 {
-        NOT_YET_IMPLEMENTED("VM: shadow_dirtypage");
-        return -1;
+        if(pframe_is_busy(pf))
+        {
+               pframe_clear_busy(pf);
+               /* broad cast */
+        }
+        if(!(pframe_is_dirty(pf)))
+        {
+               pframe_set_dirty(pf);
+        }
+        KASSERT(pframe_is_dirty(pf));
+
+
+        return 0;
+
+        /*NOT_YET_IMPLEMENTED("VM: shadow_dirtypage");
+        return -1;*/
 }
 
 static int
 shadow_cleanpage(mmobj_t *o, pframe_t *pf)
 {
-        NOT_YET_IMPLEMENTED("VM: shadow_cleanpage");
-        return -1;
+        pframe_t *pframe;        
+
+        int  ret = shadow_lookuppage(o->mmo_shadowed,pf->pf_pagenum,0,&pframe);
+
+        if(pframe)
+        {
+                while(pframe_is_pinned(pf))
+                pframe_unpin(pf);
+                memcpy(pframe,pf,PAGE_SIZE);
+                pframe_free(pf);
+        }
+        else 
+                return -1;
+
+        return 0;
+        /*NOT_YET_IMPLEMENTED("VM: shadow_cleanpage");
+        return -1;*/
 }
