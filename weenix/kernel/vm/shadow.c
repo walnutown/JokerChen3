@@ -69,7 +69,7 @@ shadow_create()
         if(shadow_obj)
         {
                 mmobj_init(shadow_obj,&shadow_mmobj_ops);
-                (new_shadow_obj)->mmo_un.mmo_bottom_obj=mmobj_bottom_obj(shadow_obj);
+                (shadow_obj)->mmo_un.mmo_bottom_obj=mmobj_bottom_obj(shadow_obj);
                 shadow_obj->mmo_refcount++;
         }
         return shadow_obj;
@@ -127,7 +127,7 @@ shadow_put(mmobj_t *o)
                         }list_iterate_end();
                         /*not sure about this*/
                         pframe_free(pf);
-                        slab_obj_free(anon_allocator, o);
+                        slab_obj_free(shadow_allocator, o);
                 }
         }
         /*NOT_YET_IMPLEMENTED("VM: shadow_put");*/
