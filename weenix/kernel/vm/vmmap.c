@@ -102,6 +102,22 @@ vmmap_destroy(vmmap_t *map)
         */
 }
 
+void 
+map_info(vmmap_t *map)
+{
+    if(!list_empty(&map->vmm_list)) 
+    {
+        dbg(DBG_USER,"VM: map_info:\n");
+        vmarea_t *iterator;
+        int i = 0;
+        list_iterate_begin(&map->vmm_list, iterator, vmarea_t, vma_plink) 
+        {
+            i++;
+            dbg(DBG_USER,"VM: NO.%d vmarea, start at %d, end at %d \n", i, iterator->vma_start, iterator->vma_end);
+        } list_iterate_end();
+    }
+}
+
 /* Add a vmarea to an address space. Assumes (i.e. asserts to some extent)
  * the vmarea is valid.  This involves finding where to put it in the list
  * of VM areas, and adding it. Don't forget to set the vma_vmmap for the
@@ -113,6 +129,9 @@ vmmap_insert(vmmap_t *map, vmarea_t *newvma)
         dbg(DBG_VFS,"VM: Enter vmmap_insert()\n");
         KASSERT(NULL != map && NULL != newvma);
         KASSERT(NULL == newvma->vma_vmmap);
+
+        map_info(map);
+
         dbg(DBG_VFS,"VM: In vmmap_insert(),newvma->vma_start=%d,newvma->vma_end=%d\n", newvma->vma_start, newvma->vma_end);
         KASSERT(newvma->vma_start < newvma->vma_end);
         KASSERT(ADDR_TO_PN(USER_MEM_LOW) <= newvma->vma_start && ADDR_TO_PN(USER_MEM_HIGH) >= newvma->vma_end);
@@ -126,26 +145,14 @@ vmmap_insert(vmmap_t *map, vmarea_t *newvma)
                         /* keep the areas sorted by the start of their virtual page ranges */
                         if(vma_start > iterator->vma_start) 
                         {
-                                /* no two ranges overlap with each other */
-                                if(vma_start >= iterator->vma_end) 
-                                {
-                                        /* set the vma_vmmap for the area */
-                                        newvma->vma_vmmap = map;
-                                        /*** need collapse? ***/
-                                        list_insert_before((&iterator->vma_plink)->l_next, &newvma->vma_plink);
-                                        dbg(DBG_VFS,"VM: Leave vmmap_insert(), list_insert_before sucessful\n");
-                                        return ;
-                                }
-                                else 
-                                {
-                                        /*** how to deal with overlap? ***/
-                                        /*** no overlap here! ***/
-                                        dbg(DBG_VFS,"VM: Leave vmmap_insert(), overlap!!!\n");
-                                        return ;
-                                }
+                                /* set the vma_vmmap for the area */
+                                newvma->vma_vmmap = map;
+                                list_insert_before((&iterator->vma_plink)->l_next, &newvma->vma_plink);
+                                dbg(DBG_VFS,"VM: Leave vmmap_insert(), list_insert_before sucessful\n");
+                                return ;
                         }
                 } list_iterate_end();
-                list_insert_tail(&map->vmm_list, &newvma->vma_plink);
+                list_insert_head(&map->vmm_list, &newvma->vma_plink);
                 newvma->vma_vmmap = map;
                 dbg(DBG_VFS,"VM: Leave vmmap_insert(), list_insert_tail\n");
                 return;
@@ -154,7 +161,7 @@ vmmap_insert(vmmap_t *map, vmarea_t *newvma)
         {
                 newvma->vma_vmmap = map;
                 list_insert_head(&map->vmm_list, &newvma->vma_plink);
-                dbg(DBG_VFS,"VM: Leave list_insert_head()\n");
+                dbg(DBG_VFS,"VM: Leave vmmap_insert(), list_insert_head()\n");
                 return ;
         }
 
@@ -284,8 +291,10 @@ vmmap_find_range(vmmap_t *map, uint32_t npages, int dir)
 vmarea_t *
 vmmap_lookup(vmmap_t *map, uint32_t vfn)
 {
-        dbg(DBG_VFS,"VM: Enter vmmap_lookup()\n");
+        dbg(DBG_USER,"VM: Enter vmmap_lookup(), search vfn=%d\n", vfn);
         KASSERT(NULL != map);
+
+        map_info(map);
 
         if(!list_empty(&map->vmm_list)) 
         {
