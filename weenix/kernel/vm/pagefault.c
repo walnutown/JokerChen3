@@ -52,17 +52,19 @@
 void
 handle_pagefault(uintptr_t vaddr, uint32_t cause)
 {
-	dbg(DBG_VFS,"VM: Enter handle_pagefault()\n");
+	dbg(DBG_VFS,"VM: Enter handle_pagefault(), cause=%d\n", cause);
 	vmarea_t *fault_vma=vmmap_lookup(curproc->p_vmmap, ADDR_TO_PN(vaddr));
 	/*find vmarea*/
 	if(fault_vma==NULL)
 	{
+		dbg(DBG_VFS,"VM: In handle_pagefault()， fault_vma=NULL\n");
 		proc_kill(curproc, -EFAULT);
 		dbg(DBG_VFS,"VM: Leave handle_pagefault(), NULL\n");
 		return;
 	}/*check permission*/
 	else if(cause&FAULT_RESERVED)
 	{
+		dbg(DBG_VFS,"VM: In handle_pagefault()， check FAULT_RESERVED\n");
 		if(!fault_vma->vma_prot&PROT_NONE)
 		{
 			proc_kill(curproc, -EFAULT);
@@ -72,6 +74,7 @@ handle_pagefault(uintptr_t vaddr, uint32_t cause)
 	}
 	else if(cause&FAULT_EXEC)
 	{
+		dbg(DBG_VFS,"VM: In handle_pagefault()， check FAULT_EXEC\n");
 		if(!(fault_vma->vma_prot&PROT_EXEC))
 		{
 			proc_kill(curproc, -EFAULT);
@@ -81,6 +84,7 @@ handle_pagefault(uintptr_t vaddr, uint32_t cause)
 	}
 	else if(cause&FAULT_WRITE)
 	{
+		dbg(DBG_VFS,"VM: In handle_pagefault()， check FAULT_WRITE\n");
 		if(!(fault_vma->vma_prot & PROT_WRITE))
 		{
 			proc_kill(curproc, -EFAULT);
@@ -90,7 +94,8 @@ handle_pagefault(uintptr_t vaddr, uint32_t cause)
 	}
 	else if(cause & FAULT_PRESENT)
 	{
-		if(!(faulted_vmarea->vma_prot & PROT_READ))
+		dbg(DBG_VFS,"VM: In handle_pagefault()， check FAULT_PRESENT\n");
+		if(!(fault_vma->vma_prot & PROT_READ))
 		{
 			proc_kill(curproc, -EFAULT);
 			dbg(DBG_VFS,"VM: Leave handle_pagefault(), FAULT_WRITE\n");
@@ -102,12 +107,16 @@ handle_pagefault(uintptr_t vaddr, uint32_t cause)
 	if(fault_vma->vma_flags==MAP_PRIVATE && fault_vma->vma_obj->mmo_shadowed!=NULL)
 	{
 		pframe_get(fault_vma->vma_obj->mmo_shadowed,ADDR_TO_PN(vaddr),&result_pframe);
-		//fault_vma->vma_obj->mmo_shadowed->mmo_ops->lookuppage(fault_vma->vma_obj->mmo_shadowed,ADDR_TO_PN(vaddr),cause&FAULT_WRITE,&result_pframe);
+		/*
+		fault_vma->vma_obj->mmo_shadowed->mmo_ops->lookuppage(fault_vma->vma_obj->mmo_shadowed,ADDR_TO_PN(vaddr),cause&FAULT_WRITE,&result_pframe);
+		*/
 	}
 	else if(fault_vma->vma_flags==MAP_SHARED)
 	{
 		pframe_get(fault_vma->vma_obj,ADDR_TO_PN(vaddr),&result_pframe);
-		//fault_vma->vma_obj->mmo_ops->lookuppage(fault_vma->vma_obj,ADDR_TO_PN(vaddr),cause&FAULT_WRITE,&result_pframe);
+		/*
+		fault_vma->vma_obj->mmo_ops->lookuppage(fault_vma->vma_obj,ADDR_TO_PN(vaddr),cause&FAULT_WRITE,&result_pframe);
+		*/
 	}
 	uint32_t pdflags=FAULT_USER;
 	uint32_t ptflags=FAULT_USER;
