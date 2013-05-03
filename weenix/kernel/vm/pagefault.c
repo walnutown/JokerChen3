@@ -48,21 +48,7 @@
  *              address which caused the fault, possible values
  *              can be found in pagefault.h
  */
- /*
- #define FAULT_PRESENT  0x01
-#define FAULT_WRITE    0x02
-#define FAULT_USER     0x04
-#define FAULT_RESERVED 0x08
-#define FAULT_EXEC     0x10
-( ((cause & FAULT_WRITE) && (vma->vma_prot & PROT_NONE)) 
-|| ((cause & FAULT_EXEC) && (vma->vma_prot & PROT_NONE)) 
-|| ((cause & FAULT_WRITE) && (vma->vma_prot & PROT_WRITE)==0) 
-|| ((cause & FAULT_EXEC) && (vma->vma_prot & PROT_EXEC)==0) )
-#define PROT_NONE       0x0    
-#define PROT_READ       0x1    
-#define PROT_WRITE      0x2    
-#define PROT_EXEC       0x4
- */
+ 
 void
 handle_pagefault(uintptr_t vaddr, uint32_t cause)
 {
@@ -76,30 +62,53 @@ handle_pagefault(uintptr_t vaddr, uint32_t cause)
 		dbg(DBG_VFS,"VM: Leave handle_pagefault(), fault_vma==NULL\n");
 		return;
 	}/*check permission*/
-	else if(fault_vma->vma_prot&PROT_NONE)
+	else if(cause&FAULT_RESERVED)
 	{
+<<<<<<< HEAD
 		dbg(DBG_VFS,"VM: In handle_pagefault()， check PROT_NONE\n");
 		if(!(cause&FAULT_RESERVED))
+=======
+		if(!fault_vma->vma_prot&PROT_NONE)
+>>>>>>> pagefault.c
 		{
 			proc_kill(curproc, -EFAULT);
 			dbg(DBG_VFS,"VM: Leave handle_pagefault(), FAULT_RESERVED\n");
 			return;
 		}
 	}
-	else if(fault_vma->vma_prot&PROT_EXEC)
+	else if(cause&FAULT_EXEC)
 	{
+<<<<<<< HEAD
 		dbg(DBG_VFS,"VM: In handle_pagefault()， check PROT_EXEC\n");
 		if(!(cause&FAULT_EXEC))
+=======
+		if(!(fault_vma->vma_prot&PROT_EXEC))
+>>>>>>> pagefault.c
 		{
 			proc_kill(curproc, -EFAULT);
 			dbg(DBG_VFS,"VM: Leave handle_pagefault(), FAULT_EXEC\n");
 			return;
 		}
 	}
+<<<<<<< HEAD
 	else if(fault_vma->vma_prot & PROT_WRITE)
 	{
 		dbg(DBG_VFS,"VM: In handle_pagefault()， check PROT_WRITE\n");
 		if(!(cause&FAULT_WRITE))
+=======
+	else if(cause&FAULT_WRITE)
+	{
+		if(!(fault_vma->vma_prot & PROT_WRITE))
+		{
+			proc_kill(curproc, -EFAULT);
+			dbg(DBG_VFS,"VM: Leave handle_pagefault(), FAULT_WRITE\n");
+			return;
+		}
+	}
+	else if(cause & FAULT_PRESENT)
+	{
+		if(!(faulted_vmarea->vma_prot & PROT_READ))
+>>>>>>> pagefault.c
 		{
 			proc_kill(curproc, -EFAULT);
 			dbg(DBG_VFS,"VM: Leave handle_pagefault(), FAULT_WRITE\n");
@@ -111,11 +120,13 @@ handle_pagefault(uintptr_t vaddr, uint32_t cause)
 	pframe_t *result_pframe;
 	if(fault_vma->vma_flags==MAP_PRIVATE && fault_vma->vma_obj->mmo_shadowed!=NULL)
 	{
-		fault_vma->vma_obj->mmo_shadowed->mmo_ops->lookuppage(fault_vma->vma_obj->mmo_shadowed,ADDR_TO_PN(vaddr),cause&FAULT_WRITE,&result_pframe);
+		pframe_get(fault_vma->vma_obj->mmo_shadowed,ADDR_TO_PN(vaddr),&result_pframe);
+		//fault_vma->vma_obj->mmo_shadowed->mmo_ops->lookuppage(fault_vma->vma_obj->mmo_shadowed,ADDR_TO_PN(vaddr),cause&FAULT_WRITE,&result_pframe);
 	}
 	else if(fault_vma->vma_flags==MAP_SHARED)
 	{
-		fault_vma->vma_obj->mmo_ops->lookuppage(fault_vma->vma_obj,ADDR_TO_PN(vaddr),cause&FAULT_WRITE,&result_pframe);
+		pframe_get(fault_vma->vma_obj,ADDR_TO_PN(vaddr),&result_pframe);
+		//fault_vma->vma_obj->mmo_ops->lookuppage(fault_vma->vma_obj,ADDR_TO_PN(vaddr),cause&FAULT_WRITE,&result_pframe);
 	}
 	uint32_t pdflags=FAULT_USER;
 	uint32_t ptflags=FAULT_USER;
@@ -129,10 +140,10 @@ handle_pagefault(uintptr_t vaddr, uint32_t cause)
 		ptflags=ptflags|PT_WRITE;
 		pdflags=pdflags|PD_WRITE;
 	}
-	if(!PAGE_ALIGNED(vaddr))
-		vaddr=ADDR_TO_PN(vaddr)*PAGE_SIZE;
-	uintptr_t paddr = pt_virt_to_phys((uintptr_t)result_pframe->pf_addr);
-	pt_map(curproc->p_pagedir,vaddr,paddr,pdflags,ptflags);
+	
+	uintptr_t paddr = (uint32_t)result_pframe->pf_addr;
+
+	pt_map( pt_get(),(uint32_t)PAGE_ALIGN_UP(vaddr),(uint32_t)PAGE_ALIGN_UP(paddr) ,pdflags,ptflags);
 	dbg(DBG_VFS,"VM: Leave handle_pagefault()\n");
     /*NOT_YET_IMPLEMENTED("VM: handle_pagefault");*/
 }
