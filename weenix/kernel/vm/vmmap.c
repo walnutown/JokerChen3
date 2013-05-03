@@ -641,98 +641,57 @@ vmmap_is_range_empty(vmmap_t *map, uint32_t startvfn, uint32_t npages)
 int
 vmmap_read(vmmap_t *map, const void *vaddr, void *buf, size_t count)
 {
-        dbg(DBG_VFS,"VM: Enter vmmap_read()\n");
+        dbg_print("VM: Enter vmmap_read()\n");
         KASSERT(NULL != map);
 
         /*** manipulate vfn ***/
-        uint32_t vfn_start = ADDR_TO_PN(vaddr);
-        uint32_t page_num = count / PAGE_SIZE;
-        uint32_t vfn_end = vfn_start + page_num;
-        /*uint32_t page_res = count - page_num * PAGE_SIZE;*/
+        uint32_t vfn = ADDR_TO_PN(vaddr);
+        uint32_t res = count % PAGE_SIZE == 0 ? count / PAGE_SIZE : (count / PAGE_SIZE) + 1;
+        uint32_t size = count / PAGE_SIZE == 0 ? 1 : res;
 
-        size_t count_res = count;
-        uint32_t vfn = vfn_start;
-        vmarea_t *vma;
+        vmarea_t *vmarea;
         pframe_t *pframe;
-        void *read_buf = buf;
-        /* [   *][****][*   ] page_num = 1 */
-        /* [    ][****][**  ] page_num = 1 */
-        /* [    ][ ** ][    ] page_num = 0 */
-        /* [    ][   *][*   ] page_num = 0 */
-        for(vfn = vfn_start; vfn <= vfn_end; ++vfn)
+
+        int i = 0;
+        while(size > 0)
         {
-                vma = vmmap_lookup(map, vfn);
-                if(vma)
+                vmarea = vmmap_lookup(map, vfn);
+                if(vmarea)
                 {
-                        if(!pframe_get(vma->vma_obj, vfn, &pframe))
+                        dbg_print("VM: In vmmap_read(), found the vmarea\n");
+                        if(!pframe_get(vmarea->vma_obj, vfn, &pframe))
                         {
-                                /* pframe_get sucess */
-                                if(vfn == vfn_start) 
-                                {
-                                        /* handle for first pageframe */
-                                        uint32_t vaddr_start = (uint32_t)(pframe->pf_addr);
-                                        uint32_t vaddr_end = vaddr_start + PAGE_SIZE;
-                                        uint32_t page_size = vaddr_end - (uint32_t)vaddr;
-                                        if(page_size > count)
-                                                page_size = count;
+                                dbg_print("VM: In vmmap_read(), found the pframe\n");
+                                dbg_print("VM: In vmmap_read(), buf=0x%x\n", buf);
 
-                                        count_res -= page_size;
+                                uint32_t buf_addr = (uint32_t)buf;
 
+                                dbg_print("VM: In vmmap_read(), buf_addr=0x%x\n", buf_addr);
 
-                                        memcpy(read_buf, pframe->pf_addr, page_size);
+                                buf_addr += i * PAGE_SIZE;
 
-                                        uint32_t read_buf_addr = (uint32_t)read_buf;
-                                        read_buf_addr += page_size;
-                                        read_buf = (void*)read_buf_addr;
-                                }
-                                else
-                                {
-                                        /* read whole page */
-                                        memcpy(read_buf, pframe->pf_addr, PAGE_SIZE);
-                                        uint32_t read_buf_addr = (uint32_t)read_buf;
-                                        read_buf_addr += PAGE_SIZE;
-                                        read_buf = (void*)read_buf_addr;
+                                dbg_print("VM: In vmmap_read(), buf_addr=0x%x\n", buf_addr);
 
-                                        count_res -= PAGE_SIZE;
-                                }
+                                memcpy((void *)buf_addr, pframe->pf_addr, count - i * PAGE_SIZE);
+                                i++;
+                                size--;
+                                vfn++;
                         }
                         else
                         {
-                                dbg(DBG_VFS,"VM: Enter vmmap_read()\n");
+                                dbg_print("VM: Leave vmmap_read(), EFAULT, cannot find pframe\n");
                                 return -EFAULT;
                         }
                 }
                 else
                 {
-                        dbg(DBG_VFS,"VM: Enter vmmap_read()\n");
+                        dbg_print("VM: Leave vmmap_read(), EFAULT, cannot find vmarea\n");
                         return -EFAULT;
-                } 
+                }
         }
-        if(count_res > 0)
-        {
-                /* handle for last pageframe */
-                 vma = vmmap_lookup(map, vfn_end + 1);
-                 if(vma)
-                 {
-                        if(!pframe_get(vma->vma_obj, vfn, &pframe))
-                        {
-                                /* count_res should < PAGE_SIZE here */
 
-                                memcpy(read_buf, pframe->pf_addr, count_res);
-                        }
-                        else
-                        {
-                                dbg(DBG_VFS,"VM: Enter vmmap_read()\n");
-                                return -EFAULT;
-                        }
-                 }
-                 else
-                 {
-                        dbg(DBG_VFS,"VM: Enter vmmap_read()\n");
-                        return -EFAULT;
-                 }
-        }
-        dbg(DBG_VFS,"VM: Enter vmmap_read()\n");
+        dbg_print("VM: Leave vmmap_read()\n");
+        /*NOT_YET_IMPLEMENTED("VM: vmmap_read");*/
         return 0;
 }
 
@@ -751,82 +710,37 @@ vmmap_write(vmmap_t *map, void *vaddr, const void *buf, size_t count)
         KASSERT(NULL != map);
 
         /*** manipulate vfn ***/
-        uint32_t vfn_start = ADDR_TO_PN(vaddr);
-        uint32_t page_num = count / PAGE_SIZE;
-        uint32_t vfn_end = vfn_start + page_num;
-        /*uint32_t page_res = count - page_num * PAGE_SIZE;*/
+        uint32_t vfn = ADDR_TO_PN(vaddr);
+        uint32_t res = count % PAGE_SIZE == 0 ? count / PAGE_SIZE : (count / PAGE_SIZE) + 1;
+        uint32_t size = count / PAGE_SIZE == 0 ? 1 : res;
 
-        dbg_print("VM: In vmmap_write():\n");
-        dbg_print("vfn_start=%d\n", vfn_start);
-        dbg_print("count=%d\n", count);
-        dbg_print("PAGE_SIZE=%d\n", PAGE_SIZE);
-        dbg_print("page_num=%d\n", page_num);
-        dbg_print("vfn_end=%d\n", vfn_end);
-
-        size_t count_res = count;
-
-        uint32_t vfn = vfn_start;
-        vmarea_t *vma;
+        vmarea_t *vmarea;
         pframe_t *pframe;
-        const void *write_buf = buf;
-        /* [   *][****][*   ] page_num = 1 */
-        /* [    ][****][**  ] page_num = 1 */
-        /* [    ][ ** ][    ] page_num = 0 */
-        /* [    ][   *][*   ] page_num = 0 */
-        for(vfn = vfn_start; vfn <= vfn_end; ++vfn)
+
+        int i = 0;
+        while(size > 0)
         {
-                dbg_print("VM: In vmmap_write(), vfn=%d\n", vfn);
-                dbg_print("VM: In vmmap_write(), vfn_end=%d\n", vfn_end);
-                vma = vmmap_lookup(map, vfn);
-                if(vma)
+                vmarea = vmmap_lookup(map, vfn);
+                if(vmarea)
                 {
-                        dbg_print("VM: In vmmap_write(), found the vma\n");
-                        if(!pframe_get(vma->vma_obj, vfn, &pframe))
+                        dbg_print("VM: In vmmap_write(), found the vmarea\n");
+                        if(!pframe_get(vmarea->vma_obj, vfn, &pframe))
                         {
-                                dbg_print("VM: In vmmap_write(), get the pframe\n");
-                                /* pframe_get sucess */
-                                if(vfn == vfn_start) 
-                                {
-                                        dbg_print("VM: In vmmap_write(), write first pframe\n");
-                                        /* handle for first pageframe */
-                                        uint32_t vaddr_start = (uint32_t)(pframe->pf_addr);
-                                        uint32_t vaddr_end = vaddr_start + PAGE_SIZE;
-                                        uint32_t page_size = vaddr_end - (uint32_t)vaddr;
-                                        if(page_size > count)
-                                                page_size = count;
+                                dbg_print("VM: In vmmap_write(), found the pframe\n");
+                                dbg_print("VM: In vmmap_write(), buf=0x%x\n", buf);
 
-                                        count_res -= page_size;
+                                uint32_t buf_addr = (uint32_t)buf;
 
-                                        dbg_print("VM: In vmmap_write(), pframe->pf_addr=0x%x\n", pframe->pf_addr);
+                                dbg_print("VM: In vmmap_write(), buf_addr=0x%x\n", buf_addr);
 
-                                        memcpy(pframe->pf_addr, write_buf, page_size);
+                                buf_addr += i * PAGE_SIZE;
 
-                                        dbg_print("VM: In vmmap_write(), memcpy sucess\n");
+                                dbg_print("VM: In vmmap_write(), buf_addr=0x%x\n", buf_addr);
 
-                                        uint32_t write_buf_addr = (uint32_t)write_buf;
-                                        write_buf_addr += page_size;
-                                        write_buf = (void*)write_buf_addr;
-
-                                        /* dirty page */
-                                        pframe_dirty(pframe);
-                                }
-                                else
-                                {
-                                        /* write whole page */
-                                        dbg_print("VM: In vmmap_write(), write whole pframe\n");
-
-                                        dbg_print("VM: In vmmap_write(), pframe->pf_addr=0x%x\n", pframe->pf_addr);
-                                        memcpy(pframe->pf_addr, write_buf, PAGE_SIZE);
-                                        dbg_print("VM: In vmmap_write(), memcpy sucess\n");
-                                        uint32_t write_buf_addr = (uint32_t)write_buf;
-                                        write_buf_addr += PAGE_SIZE;
-                                        write_buf = (void*)write_buf_addr;
-
-                                        count_res -= PAGE_SIZE;
-
-                                        /* dirty page */
-                                        pframe_dirty(pframe);
-                                }
+                                memcpy(pframe->pf_addr, (void *)buf_addr, count - i * PAGE_SIZE);
+                                i++;
+                                size--;
+                                vfn++;
                         }
                         else
                         {
@@ -838,40 +752,12 @@ vmmap_write(vmmap_t *map, void *vaddr, const void *buf, size_t count)
                 {
                         dbg_print("VM: Leave vmmap_write(), EFAULT, cannot find vmarea\n");
                         return -EFAULT;
-                } 
+                }
         }
-        if(count_res > 0)
-        {
-                /* handle for last pageframe */
-                 vma = vmmap_lookup(map, vfn_end + 1);
-                 if(vma)
-                 {
-                        if(!pframe_get(vma->vma_obj, vfn, &pframe))
-                        {
-                                dbg_print("VM: In vmmap_write(), write last pframe\n");
-                                /* count_res should < PAGE_SIZE here */
 
-                                memcpy(pframe->pf_addr, write_buf, count_res);
-
-                               /* dirty page */
-                                pframe_dirty(pframe);
-                        }
-                        else
-                        {
-                                dbg_print("VM: Leave vmmap_write(), EFAULT\n");
-                                return -EFAULT;
-                        }
-                 }
-                 else
-                 {
-                        dbg_print("VM: Leave vmmap_write(), EFAULT\n");
-                        return -EFAULT;
-                 }
-        }
-        dbg_print("VM: Leave vmmap_write(), EFAULT\n");
+        dbg_print("VM: Leave vmmap_write()\n");
+        /*NOT_YET_IMPLEMENTED("VM: vmmap_write");*/
         return 0;
-        /*NOT_YET_IMPLEMENTED("VM: vmmap_write");
-        return 0;*/
 }
 
 /* a debugging routine: dumps the mappings of the given address space. */
