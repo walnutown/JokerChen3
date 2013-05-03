@@ -659,7 +659,7 @@ vmmap_read(vmmap_t *map, const void *vaddr, void *buf, size_t count)
         /* [    ][****][**  ] page_num = 1 */
         /* [    ][ ** ][    ] page_num = 0 */
         /* [    ][   *][*   ] page_num = 0 */
-        for(vfn = vfn_start; vfn_start <= vfn_end; ++vfn)
+        for(vfn = vfn_start; vfn <= vfn_end; ++vfn)
         {
                 vma = vmmap_lookup(map, vfn);
                 if(vma)
