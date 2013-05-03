@@ -58,6 +58,7 @@ handle_pagefault(uintptr_t vaddr, uint32_t cause)
 	if(fault_vma==NULL)
 	{
 		dbg(DBG_VFS,"VM: In handle_pagefault()， fault_vma=NULL\n");
+		dbg(DBG_VFS,"VM: In handle_pagefault(), kill curproc id=%d\n", curproc->p_pid);
 		proc_kill(curproc, -EFAULT);
 		dbg(DBG_VFS,"VM: Leave handle_pagefault(), NULL\n");
 		return;
@@ -87,6 +88,7 @@ handle_pagefault(uintptr_t vaddr, uint32_t cause)
 		dbg(DBG_VFS,"VM: In handle_pagefault()， check FAULT_WRITE\n");
 		if(!(fault_vma->vma_prot & PROT_WRITE))
 		{
+			dbg(DBG_VFS,"VM: In handle_pagefault()， FAULT_WRITE, proc kill\n");
 			proc_kill(curproc, -EFAULT);
 			dbg(DBG_VFS,"VM: Leave handle_pagefault(), FAULT_WRITE\n");
 			return;
@@ -106,14 +108,18 @@ handle_pagefault(uintptr_t vaddr, uint32_t cause)
 	pframe_t *result_pframe;
 	if(fault_vma->vma_flags==MAP_PRIVATE && fault_vma->vma_obj->mmo_shadowed!=NULL)
 	{
+		dbg_print("VM: In handle_pagefault(), pframe_get\n");
 		pframe_get(fault_vma->vma_obj->mmo_shadowed,ADDR_TO_PN(vaddr),&result_pframe);
+		dbg_print("VM: In handle_pagefault(), after pframe_get\n");
 		/*
 		fault_vma->vma_obj->mmo_shadowed->mmo_ops->lookuppage(fault_vma->vma_obj->mmo_shadowed,ADDR_TO_PN(vaddr),cause&FAULT_WRITE,&result_pframe);
 		*/
 	}
 	else if(fault_vma->vma_flags==MAP_SHARED)
 	{
+		dbg_print("VM: In handle_pagefault(), pframe_get\n");
 		pframe_get(fault_vma->vma_obj,ADDR_TO_PN(vaddr),&result_pframe);
+		dbg_print("VM: In handle_pagefault(), after pframe_get\n");
 		/*
 		fault_vma->vma_obj->mmo_ops->lookuppage(fault_vma->vma_obj,ADDR_TO_PN(vaddr),cause&FAULT_WRITE,&result_pframe);
 		*/
@@ -131,9 +137,29 @@ handle_pagefault(uintptr_t vaddr, uint32_t cause)
 		pdflags=pdflags|PD_WRITE;
 	}
 	
-	uintptr_t paddr = (uint32_t)result_pframe->pf_addr;
+	/*uintptr_t paddr = (uint32_t)result_pframe->pf_addr;
+	
+	pt_map( pt_get(),(uint32_t)PAGE_ALIGN_UP(vaddr),(uint32_t)PAGE_ALIGN_UP(paddr) ,PROT_WRITE|PROT_READ|PROT_EXEC, PROT_WRITE|PROT_READ|PROT_EXEC);*/
 
-	pt_map( pt_get(),(uint32_t)PAGE_ALIGN_UP(vaddr),(uint32_t)PAGE_ALIGN_UP(paddr) ,pdflags,ptflags);
-	dbg(DBG_VFS,"VM: Leave handle_pagefault()\n");
+
+	dbg_print("VM: In handle_pagefault(), pt_map\n");
+
+	/*uintptr_t paddr = (uint32_t)result_pframe->pf_addr;*/
+
+
+
+	/*
+	pt_map(curproc->p_pagedir,(uint32_t)PAGE_ALIGN_DOWN(vaddr),(uint32_t)PAGE_ALIGN_DOWN((uint32_t)paddr),PROT_WRITE|PROT_READ|PROT_EXEC, PROT_WRITE|PROT_READ|PROT_EXEC);
+	*/
+
+	uintptr_t paddr = pt_virt_to_phys((uint32_t)result_pframe->pf_addr);
+
+	dbg_print("VM: In handle_pagefault(), result_pframe->pf_addr=0x%x\n", PAGE_ALIGN_DOWN(result_pframe->pf_addr));
+	dbg_print("VM: In handle_pagefault(), vaddr=0x%x\n", PAGE_ALIGN_DOWN(vaddr));
+
+	pt_map(curproc->p_pagedir,(uint32_t)PAGE_ALIGN_DOWN(vaddr),(uint32_t)PAGE_ALIGN_DOWN((uint32_t)paddr),PROT_WRITE|PROT_READ|PROT_EXEC, PROT_WRITE|PROT_READ|PROT_EXEC);
+
+
+	dbg_print("VM: Leave handle_pagefault()\n");
     /*NOT_YET_IMPLEMENTED("VM: handle_pagefault");*/
 }

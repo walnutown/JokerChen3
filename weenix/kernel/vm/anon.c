@@ -79,10 +79,10 @@ anon_create()
 static void
 anon_ref(mmobj_t *o)
 {
-        dbg(DBG_VFS,"VM: Enter anon_ref()\n");
+        dbg(DBG_VFS,"VM: Enter anon_ref(), reference_count =%d, nrespages=%d\n", o->mmo_refcount,o->mmo_nrespages);
         KASSERT(o && (0 < o->mmo_refcount) && (&anon_mmobj_ops == o->mmo_ops));
         o->mmo_refcount++;
-        dbg(DBG_VFS,"VM: Leave anon_ref(), object = 0x%p , reference_count =%d, nrespages=%d\n",o,o->mmo_refcount,o->mmo_nrespages);
+        dbg(DBG_VFS,"VM: Leave anon_ref(), reference_count =%d, nrespages=%d\n", o->mmo_refcount,o->mmo_nrespages);
         /*NOT_YET_IMPLEMENTED("VM: anon_ref");*/
 }
 
@@ -122,10 +122,11 @@ anon_put(mmobj_t *o)
                                 }
                                 if(pframe_is_dirty(pf))
                                 {
-                                        pframe_free(pf);
+                                        pframe_clean(pf);
                                 }
                         }list_iterate_end();
                         /*not sure about this*/
+                        pframe_free(pf);
                         slab_obj_free(anon_allocator, o);
                 }
         }
@@ -208,6 +209,7 @@ anon_fillpage(mmobj_t *o, pframe_t *pf)
 static int
 anon_dirtypage(mmobj_t *o, pframe_t *pf)
 {
+
         /*NOT_YET_IMPLEMENTED("VM: anon_dirtypage");*/
         return -1;
 }

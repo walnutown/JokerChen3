@@ -133,7 +133,7 @@ vmmap_insert(vmmap_t *map, vmarea_t *newvma)
                                         newvma->vma_vmmap = map;
                                         /*** need collapse? ***/
                                         list_insert_before((&iterator->vma_plink)->l_next, &newvma->vma_plink);
-                                        dbg(DBG_VFS,"VM: Leave vmmap_insert()\n");
+                                        dbg(DBG_VFS,"VM: Leave vmmap_insert(), list_insert_before sucessful\n");
                                         return ;
                                 }
                                 else 
@@ -147,13 +147,14 @@ vmmap_insert(vmmap_t *map, vmarea_t *newvma)
                 } list_iterate_end();
                 list_insert_tail(&map->vmm_list, &newvma->vma_plink);
                 newvma->vma_vmmap = map;
+                dbg(DBG_VFS,"VM: Leave vmmap_insert(), list_insert_tail\n");
                 return;
         }
         else 
         {
                 newvma->vma_vmmap = map;
                 list_insert_head(&map->vmm_list, &newvma->vma_plink);
-                dbg(DBG_VFS,"VM: Leave vmmap_insert()\n");
+                dbg(DBG_VFS,"VM: Leave list_insert_head()\n");
                 return ;
         }
 
