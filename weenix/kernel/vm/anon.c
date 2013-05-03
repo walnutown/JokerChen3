@@ -122,11 +122,10 @@ anon_put(mmobj_t *o)
                                 }
                                 if(pframe_is_dirty(pf))
                                 {
-                                        pframe_clean(pf);
+                                        pframe_free(pf);
                                 }
                         }list_iterate_end();
                         /*not sure about this*/
-                        pframe_free(pf);
                         slab_obj_free(anon_allocator, o);
                 }
         }
@@ -188,28 +187,27 @@ anon_lookuppage(mmobj_t *o, uint32_t pagenum, int forwrite, pframe_t **pf)
 static int
 anon_fillpage(mmobj_t *o, pframe_t *pf)
 {
-        dbg(DBG_VFS,"VM: Enter anon_fillpage()\n");
         KASSERT(pframe_is_busy(pf));
         KASSERT(pf != NULL);
-        uint32_t phy_addr = pt_virt_to_phys((uint32_t)(pf->pf_addr));
-        memset((void*)phy_addr, 0, PAGE_SIZE);
-        /* pin pages */
+        KASSERT(!pframe_is_pinned(pf));
+
+        dbg(DBG_VFS,"VM: Enter anon_fillpage()\n");
+
+        memset(pf->pf_addr, 0, PAGE_SIZE);
+        dbg_print("VM: In anon_fillpage(), pf->pf_addr=0x%x, memset success\n", pf->pf_addr);
+
         if(!pframe_is_pinned(pf))
         {
                 pframe_pin(pf);
         }
 
-        KASSERT(!pframe_is_pinned(pf));
-
-        /*NOT_YET_IMPLEMENTED("VM: anon_fillpage");*/
-        dbg(DBG_VFS,"VM: Leave anon_fillpage()\n");
+        dbg(DBG_VFS,"VM: Enter anon_fillpage()\n");
         return 0;
 }
 
 static int
 anon_dirtypage(mmobj_t *o, pframe_t *pf)
 {
-
         /*NOT_YET_IMPLEMENTED("VM: anon_dirtypage");*/
         return -1;
 }
