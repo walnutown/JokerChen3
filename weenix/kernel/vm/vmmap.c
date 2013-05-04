@@ -401,13 +401,27 @@ vmmap_map(vmmap_t *map, vnode_t *file, uint32_t lopage, uint32_t npages,
           int prot, int flags, off_t off, int dir, vmarea_t **new)
 {
         dbg(DBG_VFS,"VM: Enter vmmap_map()\n");
+        dbg(DBG_USER, "GRADING: I'm going to invoke this assert right now!\n");
         KASSERT(NULL != map);
+        dbg(DBG_USER, "GRADING: I've made it!  May I have 2 points please!\n");
+        dbg(DBG_USER, "GRADING: I'm going to invoke this assert right now!\n");
         KASSERT(0 < npages);
+        dbg(DBG_USER, "GRADING: I've made it!  May I have 2 points please!\n");
+        dbg(DBG_USER, "GRADING: I'm going to invoke this assert right now!\n");
         KASSERT(!(~(PROT_NONE | PROT_READ | PROT_WRITE | PROT_EXEC) & prot));
+        dbg(DBG_USER, "GRADING: I've made it!  May I have 2 points please!\n");
+        dbg(DBG_USER, "GRADING: I'm going to invoke this assert right now!\n");
         KASSERT((MAP_SHARED & flags) || (MAP_PRIVATE & flags));
+        dbg(DBG_USER, "GRADING: I've made it!  May I have 2 points please!\n");
+        dbg(DBG_USER, "GRADING: I'm going to invoke this assert right now!\n");
         KASSERT((0 == lopage) || (ADDR_TO_PN(USER_MEM_LOW) <= lopage));
+        dbg(DBG_USER, "GRADING: I've made it!  May I have 2 points please!\n");
+        dbg(DBG_USER, "GRADING: I'm going to invoke this assert right now!\n");
         KASSERT((0 == lopage) || (ADDR_TO_PN(USER_MEM_HIGH) >= (lopage + npages)));
+        dbg(DBG_USER, "GRADING: I've made it!  May I have 2 points please!\n");
+        dbg(DBG_USER, "GRADING: I'm going to invoke this assert right now!\n");
         KASSERT(PAGE_ALIGNED(off));
+        dbg(DBG_USER, "GRADING: I've made it!  May I have 2 points please!\n");
 
         int err;
         vmarea_t * newvma;
@@ -617,7 +631,9 @@ vmmap_is_range_empty(vmmap_t *map, uint32_t startvfn, uint32_t npages)
         dbg(DBG_VFS,"VM: Enter vmmap_is_range_empty()\n");
         KASSERT(NULL != map);
         uint32_t endvfn = startvfn + npages;
+        dbg(DBG_USER, "GRADING: I'm going to invoke this assert right now!\n");
         KASSERT((startvfn < endvfn) && (ADDR_TO_PN(USER_MEM_LOW) <= startvfn) && (ADDR_TO_PN(USER_MEM_HIGH) >= endvfn));
+        dbg(DBG_USER, "GRADING: I've made it!  May I have 2 points please!\n");
         if(!list_empty(&map->vmm_list)) 
         {
                 vmarea_t *iterator;
