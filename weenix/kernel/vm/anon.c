@@ -43,8 +43,8 @@ anon_init()
         
         dbg(DBG_VFS,"VM: Enter anon_init()\n");
         anon_allocator = slab_allocator_create("anon", sizeof(mmobj_t));
-        
-        dbg(DBG_USER, "GRADING: I'm going to invoke this assert right now!\n");
+
+        dbg(DBG_USER, "GRADING: KASSERT(anon_allocator), I'm going to invoke this assert right now!\n");
         KASSERT(anon_allocator);
         dbg(DBG_USER, "GRADING: I've made it!  May I have 2 points please!\n");
 
@@ -87,7 +87,7 @@ static void
 anon_ref(mmobj_t *o)
 {
         dbg(DBG_VFS,"VM: Enter anon_ref(), reference_count =%d, nrespages=%d\n", o->mmo_refcount,o->mmo_nrespages);
-        dbg(DBG_USER, "GRADING: I'm going to invoke this assert right now!\n");
+        dbg(DBG_USER, "GRADING: KASSERT(o && (0 < o->mmo_refcount) && (&anon_mmobj_ops == o->mmo_ops)), I'm going to invoke this assert right now!\n");
         KASSERT(o && (0 < o->mmo_refcount) && (&anon_mmobj_ops == o->mmo_ops));
         dbg(DBG_USER, "GRADING: I've made it!  May I have 2 points please!\n");
         o->mmo_refcount++;
@@ -107,7 +107,7 @@ static void
 anon_put(mmobj_t *o)
 {
         dbg(DBG_VFS,"VM: Enter anon_put()\n");
-        dbg(DBG_USER, "GRADING: I'm going to invoke this assert right now!\n");
+        dbg(DBG_USER, "GRADING: KASSERT(o && (0 < o->mmo_refcount) && (&anon_mmobj_ops == o->mmo_ops)), I'm going to invoke this assert right now!\n");
         KASSERT(o && (0 < o->mmo_refcount) && (&anon_mmobj_ops == o->mmo_ops)); 
         dbg(DBG_USER, "GRADING: I've made it!  May I have 2 points please!\n");      
         o->mmo_refcount--;
@@ -199,10 +199,10 @@ anon_lookuppage(mmobj_t *o, uint32_t pagenum, int forwrite, pframe_t **pf)
 static int
 anon_fillpage(mmobj_t *o, pframe_t *pf)
 {
-        dbg(DBG_USER, "GRADING: I'm going to invoke this assert right now!\n");
+        dbg(DBG_USER, "GRADING: KASSERT(pframe_is_busy(pf)), I'm going to invoke this assert right now!\n");
         KASSERT(pframe_is_busy(pf));
         dbg(DBG_USER, "GRADING: I've made it!  May I have 2 points please!\n");  
-        dbg(DBG_USER, "GRADING: I'm going to invoke this assert right now!\n");  
+        dbg(DBG_USER, "GRADING: KASSERT(!pframe_is_pinned(pf)), I'm going to invoke this assert right now!\n");  
         KASSERT(!pframe_is_pinned(pf));
         dbg(DBG_USER, "GRADING: I've made it!  May I have 2 points please!\n");
 
