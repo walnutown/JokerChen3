@@ -40,12 +40,14 @@ static mmobj_ops_t anon_mmobj_ops = {
 void
 anon_init()
 {
+        
+        dbg(DBG_VFS,"VM: Enter anon_init()\n");
+        anon_allocator = slab_allocator_create("anon", sizeof(mmobj_t));
+        
         dbg(DBG_USER, "GRADING: I'm going to invoke this assert right now!\n");
         KASSERT(anon_allocator);
         dbg(DBG_USER, "GRADING: I've made it!  May I have 2 points please!\n");
 
-        dbg(DBG_VFS,"VM: Enter anon_init()\n");
-        anon_allocator = slab_allocator_create("anon", sizeof(mmobj_t));
         KASSERT(NULL != anon_allocator && "failed to create anon allocator!");
         dbg(DBG_VFS,"VM: Leave anon_init()\n");
         /*NOT_YET_IMPLEMENTED("VM: anon_init");*/
