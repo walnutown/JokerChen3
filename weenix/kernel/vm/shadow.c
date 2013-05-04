@@ -52,10 +52,10 @@ static mmobj_ops_t shadow_mmobj_ops = {
 void
 shadow_init()
 {
+        shadow_allocator = slab_allocator_create("shadow", sizeof(mmobj_t));
         dbg(DBG_USER, "GRADING: KASSERT(shadow_allocator), I'm going to invoke this assert right now!\n");
         KASSERT(shadow_allocator);
         dbg(DBG_USER, "GRADING: I've made it!  May I have 2 points please!\n");
-        shadow_allocator = slab_allocator_create("shadow", sizeof(mmobj_t));
         /*NOT_YET_IMPLEMENTED("VM: shadow_init");*/
 }
 
@@ -209,6 +209,7 @@ shadow_lookuppage(mmobj_t *o, uint32_t pagenum, int forwrite, pframe_t **pf)
                         return 0;
                 }
         }
+        return 0;
         /*NOT_YET_IMPLEMENTED("VM: shadow_lookuppage");
         return 0;*/
 }
@@ -249,6 +250,7 @@ shadow_fillpage(mmobj_t *o, pframe_t *pf)
         else 
                 return -1;
         dbg(DBG_VFS,"Fillpage operation completed\n");
+        return 0;
         /*NOT_YET_IMPLEMENTED("VM: shadow_fillpage");
         return 0;*/
 }

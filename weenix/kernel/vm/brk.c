@@ -56,6 +56,7 @@
 int
 do_brk(void *addr, void **ret)
 {
+		void **rret = ret;
 		dbg(DBG_VFS,"VM: Enter do_brk()\n");
 		if(addr==NULL)
 		{

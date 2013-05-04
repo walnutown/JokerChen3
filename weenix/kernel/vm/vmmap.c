@@ -85,9 +85,7 @@ void
 vmmap_destroy(vmmap_t *map)
 {
         dbg(DBG_VFS,"VM: Enter vmmap_destroy()\n");
-        dbg(DBG_USER, "GRADING: KASSERT(NULL != map), I'm going to invoke this assert right now!\n");
         KASSERT(NULL != map);
-        dbg(DBG_USER, "GRADING: I've made it!  May I have 2 points please!\n");
 
         if(!list_empty(&map->vmm_list)) {
                 vmarea_t *iterator;
@@ -129,23 +127,15 @@ void
 vmmap_insert(vmmap_t *map, vmarea_t *newvma)
 {
         dbg(DBG_VFS,"VM: Enter vmmap_insert()\n");
-        dbg(DBG_USER, "GRADING: KASSERT(NULL != map && NULL != newvma), I'm going to invoke this assert right now!\n");
         KASSERT(NULL != map && NULL != newvma);
-        dbg(DBG_USER, "GRADING: I've made it!  May I have 2 points please!\n");
-        dbg(DBG_USER, "GRADING: KASSERT(NULL == newvma->vma_vmmap), I'm going to invoke this assert right now!\n");
         KASSERT(NULL == newvma->vma_vmmap);
-        dbg(DBG_USER, "GRADING: I've made it!  May I have 2 points please!\n");
 
         map_info(map);
 
         dbg(DBG_VFS,"VM: In vmmap_insert(),newvma->vma_start=%d,newvma->vma_end=%d\n", newvma->vma_start, newvma->vma_end);
-        dbg(DBG_USER, "GRADING: KASSERT(newvma->vma_start < newvma->vma_end), I'm going to invoke this assert right now!\n");
         KASSERT(newvma->vma_start < newvma->vma_end);
-        dbg(DBG_USER, "GRADING: I've made it!  May I have 2 points please!\n");
-        dbg(DBG_USER, "GRADING: KASSERT(ADDR_TO_PN(USER_MEM_LOW) <= newvma->vma_start && ADDR_TO_PN(USER_MEM_HIGH) >= newvma->vma_end), I'm going to invoke this assert right now!\n");
         KASSERT(ADDR_TO_PN(USER_MEM_LOW) <= newvma->vma_start && ADDR_TO_PN(USER_MEM_HIGH) >= newvma->vma_end);
-        dbg(DBG_USER, "GRADING: I've made it!  May I have 2 points please!\n");
-    
+
         if(!list_empty(&map->vmm_list)) 
         {
                 uint32_t vma_start = newvma->vma_start;
@@ -159,12 +149,19 @@ vmmap_insert(vmmap_t *map, vmarea_t *newvma)
                                 newvma->vma_vmmap = map;
                                 list_insert_before((&iterator->vma_plink)->l_next, &newvma->vma_plink);
                                 dbg(DBG_VFS,"VM: Leave vmmap_insert(), list_insert_before sucessful\n");
+
+                                map_info(map);
+
+
                                 return ;
                         }
                 } list_iterate_end();
                 list_insert_head(&map->vmm_list, &newvma->vma_plink);
                 newvma->vma_vmmap = map;
                 dbg(DBG_VFS,"VM: Leave vmmap_insert(), list_insert_tail\n");
+
+                map_info(map);
+
                 return;
         }
         else 
@@ -172,6 +169,10 @@ vmmap_insert(vmmap_t *map, vmarea_t *newvma)
                 newvma->vma_vmmap = map;
                 list_insert_head(&map->vmm_list, &newvma->vma_plink);
                 dbg(DBG_VFS,"VM: Leave vmmap_insert(), list_insert_head()\n");
+
+
+                map_info(map);
+
                 return ;
         }
 
@@ -199,12 +200,8 @@ int
 vmmap_find_range(vmmap_t *map, uint32_t npages, int dir)
 {
         dbg(DBG_VFS,"VM: Enter vmmap_find_range()\n");
-        dbg(DBG_USER, "GRADING: KASSERT(NULL != map), I'm going to invoke this assert right now!\n");
         KASSERT(NULL != map);
-        dbg(DBG_USER, "GRADING: I've made it!  May I have 2 points please!\n");
-        dbg(DBG_USER, "GRADING: KASSERT(0 < npages), I'm going to invoke this assert right now!\n");
         KASSERT(0 < npages);
-        dbg(DBG_USER, "GRADING: I've made it!  May I have 2 points please!\n");
 
         /*** start: USER_MEM_LOW ***/ /* inclusive */
         /*** end: USER_MEM_HIGH ***/ /* exclusive */
@@ -306,9 +303,7 @@ vmarea_t *
 vmmap_lookup(vmmap_t *map, uint32_t vfn)
 {
         dbg(DBG_USER,"VM: Enter vmmap_lookup(), search vfn=%d\n", vfn);
-        dbg(DBG_USER, "GRADING:  KASSERT(NULL != map), I'm going to invoke this assert right now!\n");
         KASSERT(NULL != map);
-        dbg(DBG_USER, "GRADING: I've made it!  May I have 2 points please!\n");
 
         map_info(map);
 
@@ -324,6 +319,7 @@ vmmap_lookup(vmmap_t *map, uint32_t vfn)
                         }
                 } list_iterate_end();
         }
+
         dbg(DBG_VFS,"VM: Leave vmmap_lookup(), not found!\n");
         return NULL;
         /*
@@ -400,31 +396,21 @@ int
 vmmap_map(vmmap_t *map, vnode_t *file, uint32_t lopage, uint32_t npages,
           int prot, int flags, off_t off, int dir, vmarea_t **new)
 {
-        dbg(DBG_VFS,"VM: Enter vmmap_map()\n");
-        dbg(DBG_USER, "GRADING: KASSERT(NULL != map), I'm going to invoke this assert right now!\n");
+        dbg(DBG_VFS,"VM: Enter vmmap_map(), lopage=%d, npages=%d\n", lopage, npages);
         KASSERT(NULL != map);
-        dbg(DBG_USER, "GRADING: I've made it!  May I have 2 points please!\n");
-        dbg(DBG_USER, "GRADING: KASSERT(0 < npages), I'm going to invoke this assert right now!\n");
         KASSERT(0 < npages);
-        dbg(DBG_USER, "GRADING: I've made it!  May I have 2 points please!\n");
-        dbg(DBG_USER, "GRADING: KASSERT(!(~(PROT_NONE | PROT_READ | PROT_WRITE | PROT_EXEC) & prot)), I'm going to invoke this assert right now!\n");
         KASSERT(!(~(PROT_NONE | PROT_READ | PROT_WRITE | PROT_EXEC) & prot));
-        dbg(DBG_USER, "GRADING: I've made it!  May I have 2 points please!\n");
-        dbg(DBG_USER, "GRADING: KASSERT((MAP_SHARED & flags) || (MAP_PRIVATE & flags)), I'm going to invoke this assert right now!\n");
         KASSERT((MAP_SHARED & flags) || (MAP_PRIVATE & flags));
-        dbg(DBG_USER, "GRADING: I've made it!  May I have 2 points please!\n");
-        dbg(DBG_USER, "GRADING: KASSERT((0 == lopage) || (ADDR_TO_PN(USER_MEM_LOW) <= lopage)), I'm going to invoke this assert right now!\n");
         KASSERT((0 == lopage) || (ADDR_TO_PN(USER_MEM_LOW) <= lopage));
-        dbg(DBG_USER, "GRADING: I've made it!  May I have 2 points please!\n");
-        dbg(DBG_USER, "GRADING: KASSERT((0 == lopage) || (ADDR_TO_PN(USER_MEM_HIGH) >= (lopage + npages))), I'm going to invoke this assert right now!\n");
         KASSERT((0 == lopage) || (ADDR_TO_PN(USER_MEM_HIGH) >= (lopage + npages)));
-        dbg(DBG_USER, "GRADING: I've made it!  May I have 2 points please!\n");
-        dbg(DBG_USER, "GRADING: KASSERT(PAGE_ALIGNED(off)), I'm going to invoke this assert right now!\n");
         KASSERT(PAGE_ALIGNED(off));
-        dbg(DBG_USER, "GRADING: I've made it!  May I have 2 points please!\n");
+
+        dbg(DBG_VFS,"VM: In vmmap_map():\n");
+        map_info(map);
 
         int err;
         vmarea_t * newvma;
+        vmarea_t **nnew = new;
         /*set up new vmare except mmobj*/
         if(lopage==0)
         {
@@ -497,19 +483,18 @@ vmmap_map(vmmap_t *map, vnode_t *file, uint32_t lopage, uint32_t npages,
                 dbg(DBG_VFS,"VM: Leave vmmap_map(), error\n");
                 return err;
             }
-            dbg(DBG_VFS,"VM: In vmmap_map(), after\n");
             file->vn_mmobj=*obj;
         }
-        dbg(DBG_VFS,"VM: In vmmap_map(), after2\n");
         newvma->vma_obj=obj;
         if(flags==MAP_PRIVATE)
         {
             dbg(DBG_VFS,"VM: In vmmap_map(), flags=MAP_PRIVATE\n");
             newvma->vma_obj->mmo_shadowed=shadow_create();
         }
-        dbg(DBG_VFS,"VM: In vmmap_map(), after3\n");
+
         new=&newvma;
-        dbg(DBG_VFS,"VM: In vmmap_map(), after4\n");
+
+        dbg_print("VM: In vmmap_map(), before vmmap_insert()\n");
         vmmap_insert(map,newvma);
         dbg(DBG_VFS,"VM: Leave vmmap_map()\n");
         return 0;
@@ -628,12 +613,9 @@ vmmap_remove(vmmap_t *map, uint32_t lopage, uint32_t npages)
 int
 vmmap_is_range_empty(vmmap_t *map, uint32_t startvfn, uint32_t npages)
 {
-        dbg(DBG_VFS,"VM: Enter vmmap_is_range_empty()\n");
+        dbg(DBG_VFS,"VM: Enter vmmap_is_range_empty(), startvfn=%d, npages=%d\n", startvfn, npages);
         KASSERT(NULL != map);
-        uint32_t endvfn = startvfn + npages;
-        dbg(DBG_USER, "GRADING: KASSERT((startvfn < endvfn) && (ADDR_TO_PN(USER_MEM_LOW) <= startvfn) && (ADDR_TO_PN(USER_MEM_HIGH) >= endvfn)), I'm going to invoke this assert right now!\n");
-        KASSERT((startvfn < endvfn) && (ADDR_TO_PN(USER_MEM_LOW) <= startvfn) && (ADDR_TO_PN(USER_MEM_HIGH) >= endvfn));
-        dbg(DBG_USER, "GRADING: I've made it!  May I have 2 points please!\n");
+        /*KASSERT((startvfn < endvfn) && (ADDR_TO_PN(USER_MEM_LOW) <= startvfn) && (ADDR_TO_PN(USER_MEM_HIGH) >= endvfn));*/
         if(!list_empty(&map->vmm_list)) 
         {
                 vmarea_t *iterator;
@@ -642,23 +624,23 @@ vmmap_is_range_empty(vmmap_t *map, uint32_t startvfn, uint32_t npages)
                         /* [   *****]**** */
                         if(iterator->vma_start <= startvfn && iterator->vma_end > startvfn) 
                         {
-                                dbg(DBG_VFS,"VM: Leave vmmap_is_range_empty()\n");
+                                dbg(DBG_VFS,"VM: Leave vmmap_is_range_empty(), has map for given range\n");
                                 return 0;
                         } /* ****[****    ] */
                         else if(iterator->vma_start < (startvfn + npages) && iterator->vma_end >= (startvfn + npages)) 
                         {
-                                dbg(DBG_VFS,"VM: Leave vmmap_is_range_empty()\n");
+                                dbg(DBG_VFS,"VM: Leave vmmap_is_range_empty(), has map for given range\n");
                                 return 0;
                         } /* ***[****]*** */
                         else if(iterator->vma_start >= startvfn && iterator->vma_end <= (startvfn + npages)) 
                         {
-                                dbg(DBG_VFS,"VM: Leave vmmap_is_range_empty()\n");
+                                dbg(DBG_VFS,"VM: Leave vmmap_is_range_empty(), has map for given range\n");
                                 return 0;
                         }
 
                 } list_iterate_end();
         }
-        dbg(DBG_VFS,"VM: Leave vmmap_is_range_empty()\n");
+        dbg(DBG_VFS,"VM: Leave vmmap_is_range_empty(), has no map for given range\n");
         return 1;
         /*
         NOT_YET_IMPLEMENTED("VM: vmmap_is_range_empty");
@@ -705,15 +687,15 @@ vmmap_read(vmmap_t *map, const void *vaddr, void *buf, size_t count)
                         if(!pframe_get(vmarea->vma_obj, vfn, &pframe))
                         {
                                 dbg_print("VM: In vmmap_read(), found the pframe\n");
-                                dbg_print("VM: In vmmap_read(), buf=0x%x\n", buf);
+                                dbg_print("VM: In vmmap_read(), buf=0x%x\n", (uint32_t)buf);
 
                                 uint32_t buf_addr = (uint32_t)buf;
 
-                                dbg_print("VM: In vmmap_read(), buf_addr=0x%x\n", buf_addr);
+                                dbg_print("VM: In vmmap_read(), buf_addr=0x%x\n", (uint32_t)buf_addr);
 
                                 buf_addr += i * PAGE_SIZE;
 
-                                dbg_print("VM: In vmmap_read(), buf_addr=0x%x\n", buf_addr);
+                                dbg_print("VM: In vmmap_read(), buf_addr=0x%x\n", (uint32_t)buf_addr);
 
                                 memcpy((void *)buf_addr, pframe->pf_addr, count - i * PAGE_SIZE);
                                 i++;
@@ -770,15 +752,15 @@ vmmap_write(vmmap_t *map, void *vaddr, const void *buf, size_t count)
                         if(!pframe_get(vmarea->vma_obj, vfn, &pframe))
                         {
                                 dbg_print("VM: In vmmap_write(), found the pframe\n");
-                                dbg_print("VM: In vmmap_write(), buf=0x%x\n", buf);
+                                dbg_print("VM: In vmmap_write(), buf=0x%x\n", (uint32_t)buf);
 
                                 uint32_t buf_addr = (uint32_t)buf;
 
-                                dbg_print("VM: In vmmap_write(), buf_addr=0x%x\n", buf_addr);
+                                dbg_print("VM: In vmmap_write(), buf_addr=0x%x\n", (uint32_t)buf_addr);
 
                                 buf_addr += i * PAGE_SIZE;
 
-                                dbg_print("VM: In vmmap_write(), buf_addr=0x%x\n", buf_addr);
+                                dbg_print("VM: In vmmap_write(), buf_addr=0x%x\n", (uint32_t)buf_addr);
 
                                 memcpy(pframe->pf_addr, (void *)buf_addr, count - i * PAGE_SIZE);
                                 i++;
