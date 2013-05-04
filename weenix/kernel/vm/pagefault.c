@@ -56,9 +56,9 @@ handle_pagefault(uintptr_t vaddr, uint32_t cause)
 	dbg(DBG_VFS,"VM: Enter handle_pagefault(), cause=%d, vaddr=0x%x, pagenum_x=0x%x,pagenum_d=%d\n", cause, vaddr, ADDR_TO_PN(vaddr),ADDR_TO_PN(vaddr));
 
 
-	char buffer[1024];
+	/*char buffer[1024];
     	pt_mapping_info(curproc->p_pagedir, buffer, 1024);
-     	dbg_print("Page table info:\nVritual Address --> Physical Address\n%s\n", buffer);
+     	dbg_print("Page table info:\nVritual Address --> Physical Address\n%s\n", buffer);*/
 	vmarea_t *fault_vma=vmmap_lookup(curproc->p_vmmap, ADDR_TO_PN(vaddr));
 	/*find vmarea*/
 	if(fault_vma==NULL)
@@ -174,8 +174,8 @@ handle_pagefault(uintptr_t vaddr, uint32_t cause)
 
 	pt_map(curproc->p_pagedir,(uint32_t)PAGE_ALIGN_DOWN(vaddr),(uint32_t)PAGE_ALIGN_DOWN((uint32_t)paddr),PROT_WRITE|PROT_READ|PROT_EXEC, PROT_WRITE|PROT_READ|PROT_EXEC);
 	dbg(DBG_VFS,"VM: after pframe_get\n");
-	pt_mapping_info(curproc->p_pagedir, buffer, 1024);
-     	dbg_print("Page table info:\nVritual Address --> Physical Address\n%s\n", buffer);
+	/*pt_mapping_info(curproc->p_pagedir, buffer, 1024);
+     	dbg_print("Page table info:\nVritual Address --> Physical Address\n%s\n", buffer);*/
 
 	dbg_print("VM: Leave handle_pagefault()\n");
     /*NOT_YET_IMPLEMENTED("VM: handle_pagefault");*/
