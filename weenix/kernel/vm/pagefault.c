@@ -105,20 +105,27 @@ handle_pagefault(uintptr_t vaddr, uint32_t cause)
 		}
 	}
 	/*to find the correct page*/
-	pframe_t *result_pframe;
-	if(fault_vma->vma_flags==MAP_PRIVATE && fault_vma->vma_obj->mmo_shadowed!=NULL)
+	pframe_t *result_pframe=NULL;
+	
+	/* dbg(DBG_VFS,"VM: before pframe_get\n result_pframe->pf_addr=0x%x\n page_align_up=0x%x\n page_align_down=0x%x, page_offset=0x%x\n", result_pframe->pf_addr,  PAGE_ALIGN_UP(result_pframe->pf_addr), PAGE_ALIGN_DOWN(result_pframe->pf_addr),  PAGE_OFFSET(result_pframe->pf_addr)); */
+	/* if(fault_vma->vma_flags==MAP_PRIVATE && fault_vma->vma_obj->mmo_shadowed!=NULL) */
+	dbg(DBG_VFS,"VM: vma_flags: %d\n", fault_vma->vma_flags);
+
+	if(fault_vma->vma_flags&MAP_PRIVATE )
 	{
-		dbg_print("VM: In handle_pagefault(), pframe_get\n");
-		pframe_get(fault_vma->vma_obj->mmo_shadowed,ADDR_TO_PN(vaddr),&result_pframe);
-		dbg_print("VM: In handle_pagefault(), after pframe_get\n");
+		dbg_print("VM: MAP_PRIVATE, pframe_get\n");
+		/*pframe_get(fault_vma->vma_obj->mmo_shadowed,ADDR_TO_PN(vaddr),&result_pframe);*/
+		pframe_get(fault_vma->vma_obj,PAGE_OFFSET(ADDR_TO_PN(vaddr)),&result_pframe);
+		/*dbg_print("VM: In handle_pagefault(), after pframe_get\n");*/	
+
 		/*
 		fault_vma->vma_obj->mmo_shadowed->mmo_ops->lookuppage(fault_vma->vma_obj->mmo_shadowed,ADDR_TO_PN(vaddr),cause&FAULT_WRITE,&result_pframe);
 		*/
 	}
-	else if(fault_vma->vma_flags==MAP_SHARED)
+	else if(fault_vma->vma_flags&MAP_SHARED)
 	{
-		dbg_print("VM: In handle_pagefault(), pframe_get\n");
-		pframe_get(fault_vma->vma_obj,ADDR_TO_PN(vaddr),&result_pframe);
+		dbg_print("VM: MAP_SHARED, pframe_get\n");
+		pframe_get(fault_vma->vma_obj,PAGE_OFFSET(ADDR_TO_PN(vaddr)),&result_pframe);
 		dbg_print("VM: In handle_pagefault(), after pframe_get\n");
 		/*
 		fault_vma->vma_obj->mmo_ops->lookuppage(fault_vma->vma_obj,ADDR_TO_PN(vaddr),cause&FAULT_WRITE,&result_pframe);
@@ -142,24 +149,26 @@ handle_pagefault(uintptr_t vaddr, uint32_t cause)
 	pt_map( pt_get(),(uint32_t)PAGE_ALIGN_UP(vaddr),(uint32_t)PAGE_ALIGN_UP(paddr) ,PROT_WRITE|PROT_READ|PROT_EXEC, PROT_WRITE|PROT_READ|PROT_EXEC);*/
 
 
-	dbg_print("VM: In handle_pagefault(), pt_map\n");
+	/* dbg_print("VM: In handle_pagefault(), pt_map\n"); */
 
 	/*uintptr_t paddr = (uint32_t)result_pframe->pf_addr;*/
-
-
 
 	/*
 	pt_map(curproc->p_pagedir,(uint32_t)PAGE_ALIGN_DOWN(vaddr),(uint32_t)PAGE_ALIGN_DOWN((uint32_t)paddr),PROT_WRITE|PROT_READ|PROT_EXEC, PROT_WRITE|PROT_READ|PROT_EXEC);
 	*/
-
+	dbg(DBG_VFS,"VM: after pframe_get, result_pframe->pf_addr=0x%x\n", result_pframe->pf_addr);
+	
 	uintptr_t paddr = pt_virt_to_phys((uint32_t)result_pframe->pf_addr);
+	
 
-	dbg_print("VM: In handle_pagefault(), result_pframe->pf_addr=0x%x\n", PAGE_ALIGN_DOWN(result_pframe->pf_addr));
-	dbg_print("VM: In handle_pagefault(), vaddr=0x%x\n", PAGE_ALIGN_DOWN(vaddr));
+	/* dbg(DBG_VFS,"VM: before pt_map(), vaddr:0x%x, paddr:0x%x, pdflags:%d, ptflags:%d\n",(uint32_t)PAGE_ALIGN_UP(vaddr), (uint32_t)PAGE_ALIGN_UP(paddr), pdflags, ptflags); */
+	/* char buffer[1024]; */
+    	
 
 	pt_map(curproc->p_pagedir,(uint32_t)PAGE_ALIGN_DOWN(vaddr),(uint32_t)PAGE_ALIGN_DOWN((uint32_t)paddr),PROT_WRITE|PROT_READ|PROT_EXEC, PROT_WRITE|PROT_READ|PROT_EXEC);
-
+	dbg(DBG_VFS,"VM: after pframe_get\n");
+	pt_mapping_info(curproc->p_pagedir, buffer, 1024);
+     	dbg_print("Page table info:\nVritual Address --> Physical Address\n%s\n", buffer);
 
 	dbg_print("VM: Leave handle_pagefault()\n");
-    /*NOT_YET_IMPLEMENTED("VM: handle_pagefault");*/
 }
