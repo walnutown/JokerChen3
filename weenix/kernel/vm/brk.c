@@ -86,8 +86,10 @@ do_brk(void *addr, void **ret)
 		{	
 				addr_end = ADDR_TO_PN(PAGE_ALIGN_DOWN(addr));
 				addr_start =  ADDR_TO_PN(PAGE_ALIGN_DOWN(curproc->p_brk)) + 1;
-				status = vmmap_is_range_empty(map, addr_start, npages);
+
 				npages = addr_end - addr_start + 1;
+				status = vmmap_is_range_empty(map, addr_start, npages);
+				
 				if(status!=1)
 				{
 					ret = NULL;
