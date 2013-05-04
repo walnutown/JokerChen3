@@ -52,17 +52,17 @@ fork_setup_stack(const regs_t *regs, void *kstack)
 int
 do_fork(struct regs *regs)
 {
-        dbg(DBG_VM,"GRADING: KASSERT (regs != NULL) is going getting invoked right now ! \n");
+        dbg(DBG_USER,"GRADING: KASSERT (regs != NULL) is going getting invoked right now ! \n");
 		KASSERT (regs != NULL);
-		dbg(DBG_VM,"GRADING: I've made it ! May I have 2 points please ! \n");
+		dbg(DBG_USER,"GRADING: I've made it ! May I have 2 points please ! \n");
 
-		dbg(DBG_VM,"GRADING: KASSERT (curproc != NULL) is going getting invoked right now ! \n");
+		dbg(DBG_USER,"GRADING: KASSERT (curproc != NULL) is going getting invoked right now ! \n");
 		KASSERT (curproc != NULL);
-		dbg(DBG_VM,"GRADING: I've made it ! May I have 2 points please ! \n");
+		dbg(DBG_USER,"GRADING: I've made it ! May I have 2 points please ! \n");
 
-		dbg(DBG_VM,"GRADING: KASSERT (curproc->p_state == PROC_RUNNING) is going getting invoked right now ! \n");
+		dbg(DBG_USER,"GRADING: KASSERT (curproc->p_state == PROC_RUNNING) is going getting invoked right now ! \n");
 		KASSERT (curproc->p_state == PROC_RUNNING);
-		dbg(DBG_VM,"GRADING: I've made it ! May I have 2 points please ! \n");
+		dbg(DBG_USER,"GRADING: I've made it ! May I have 2 points please ! \n");
 
 		proc_t *process = proc_create("process");
 		process->p_vmmap = vmmap_clone(curproc->p_vmmap);
@@ -94,17 +94,17 @@ do_fork(struct regs *regs)
 		kthread_t *child_thread = kthread_create(process, NULL, 0, NULL);
 		child_thread = kthread_clone(curthr);
 
-		dbg(DBG_VM,"GRADING: KASSERT(child_process->p_state == PROC_RUNNING) is going getting invoked right now ! \n");
+		dbg(DBG_USER,"GRADING: KASSERT(newproc->p_state == PROC_RUNNING), is going getting invoked right now ! \n");
 		KASSERT(process->p_state == PROC_RUNNING);
-		dbg(DBG_VM,"GRADING: I've made it ! May I have 2 points please ! \n");
+		dbg(DBG_USER,"GRADING: I've made it ! May I have 2 points please ! \n");
 
-		dbg(DBG_VM,"GRADING: KASSERT(child_process->p_pagedir !=NULL) is going getting invoked right now ! \n");
+		dbg(DBG_USER,"GRADING: KASSERT(newproc->p_pagedir != NULL), is going getting invoked right now ! \n");
 		KASSERT(process->p_pagedir !=NULL);
-		dbg(DBG_VM,"GRADING: I've made it ! May I have 2 points please ! \n");
+		dbg(DBG_USER,"GRADING: I've made it ! May I have 2 points please ! \n");
 
-		dbg(DBG_VM,"GRADING: KASSERT(child_thread->kt_kstack != NULL) is going getting invoked right now ! \n");
+		dbg(DBG_USER,"GRADING: KASSERT(newthr->kt_kstack != NULL), is going getting invoked right now ! \n");
 		KASSERT(child_thread->kt_kstack != NULL);
-		dbg(DBG_VM,"GRADING: I've made it ! May I have 2 points please ! \n");
+		dbg(DBG_USER,"GRADING: I've made it ! May I have 2 points please ! \n");
 
 	    child_thread->kt_proc = process; 
 		(child_thread->kt_ctx).c_eip = (uint32_t)userland_entry;
