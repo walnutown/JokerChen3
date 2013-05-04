@@ -163,7 +163,7 @@ handle_pagefault(uintptr_t vaddr, uint32_t cause)
 	/*
 	pt_map(curproc->p_pagedir,(uint32_t)PAGE_ALIGN_DOWN(vaddr),(uint32_t)PAGE_ALIGN_DOWN((uint32_t)paddr),PROT_WRITE|PROT_READ|PROT_EXEC, PROT_WRITE|PROT_READ|PROT_EXEC);
 	*/
-	dbg(DBG_VFS,"VM: after pframe_get, result_pframe->pf_addr=0x%x\n", result_pframe->pf_addr);
+	dbg(DBG_VFS,"VM: after pframe_get, result_pframe->pf_addr=0x%x\n", (uint32_t)result_pframe->pf_addr);
 	
 	uintptr_t paddr = pt_virt_to_phys((uint32_t)result_pframe->pf_addr);
 	
