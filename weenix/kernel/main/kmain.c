@@ -80,7 +80,7 @@ static context_t bootstrap_context;
 
 #define VM_TEST                     11
 
-static int CURRENT_TEST = VFS_TEST;
+static int CURRENT_TEST = VM_TEST;
 
 /**
  * This is the first real C function ever called. It performs a lot off
@@ -1689,7 +1689,6 @@ void usrland_test()
     char *argv[] = { NULL };
     char *envp[] = { NULL };
     kernel_execve(filename,argv,envp);
-    return NULL;
 }
 
 
