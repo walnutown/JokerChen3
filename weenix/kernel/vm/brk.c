@@ -56,6 +56,52 @@
 int
 do_brk(void *addr, void **ret)
 {
-        NOT_YET_IMPLEMENTED("VM: do_brk");
-        return 0;
+		if(addr==NULL)
+		{
+				ret = &(curproc->p_brk);
+				return 0;
+		}
+		if(addr<curproc->p_start_brk || addr>(void *)USER_MEM_HIGH)
+		{
+				ret = NULL;
+				return -ENOMEM;
+		}
+
+		vmmap_t *map = curproc->p_vmmap;
+		vmarea_t *vma;
+		int status;
+		uint32_t start, end, npages;
+
+		vma = vmmap_lookup(map, ADDR_TO_PN(PAGE_ALIGN_DOWN(curproc->p_brk)));
+		if(vma==NULL)
+				return -1;
+		if(addr>curproc->p_brk)
+		{	
+				end = ADDR_TO_PN(PAGE_ALIGN_DOWN(addr));
+				start =  ADDR_TO_PN(PAGE_ALIGN_DOWN(curproc->p_brk)) + 1;
+				npages = end - start + 1;
+				status = vmmap_is_range_empty(map, start, npages);
+				if(status!=1)
+				{
+					ret = NULL;
+					return -ENOMEM;
+				}
+				vma->vma_end = end;
+		}
+		else 
+		{	
+				start = ADDR_TO_PN(PAGE_ALIGN_DOWN(addr));
+				end =  ADDR_TO_PN(PAGE_ALIGN_DOWN(curproc->p_brk));
+				npages = end - start + 1;
+				status = vmmap_is_range_empty(map, start, npages);
+				if(status!=1)
+				{
+					ret = NULL;
+					return -ENOMEM;
+				}
+				vma->vma_end = start;
+		}
+		return 0;
+        /*NOT_YET_IMPLEMENTED("VM: do_brk");
+        return 0;*/
 }
