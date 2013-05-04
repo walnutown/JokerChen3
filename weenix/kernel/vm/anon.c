@@ -211,7 +211,7 @@ anon_fillpage(mmobj_t *o, pframe_t *pf)
         dbg(DBG_VFS,"VM: Enter anon_fillpage()\n");
 
         memset(pf->pf_addr, 0, PAGE_SIZE);
-        dbg_print("VM: In anon_fillpage(), pf->pf_addr=0x%x, memset success\n", pf->pf_addr);
+        dbg_print("VM: In anon_fillpage(), pf->pf_addr=0x%x, memset success\n", (uint32_t)pf->pf_addr);
 
         if(!pframe_is_pinned(pf))
         {
