@@ -164,8 +164,32 @@ sys_write(write_args_t *arg)
 static int
 sys_getdents(getdents_args_t *arg)
 {
-        NOT_YET_IMPLEMENTED("VM: sys_getdents");
-        return -1;
+        getdents_args_t getdents;
+        if (copy_from_user(&getdents, arg, sizeof(getdents_args_t)) < 0)
+        {
+                curthr->kt_errno = EFAULT;
+                return -1;
+        }
+        int i = 0, j = 0, max_count = 0;
+        if(getdents.count <= sizeof(dirent_t))
+                max_count = getdents.count;
+        else
+                getdents.count = sizeof(dirent_t);
+        
+        while(i < max_count)
+        {
+                j = do_getdent(getdents.fd, getdents.dirp);
+                if(j < 0)
+                {
+                        curthr->kt_errno = -j;
+                        return -1;
+                }        
+                i++;                
+        }
+        /*NOT_YET_IMPLEMENTED("VM: sys_getdents");*/
+        return max_count;
+        /*NOT_YET_IMPLEMENTED("VM: sys_getdents");
+        return -1;*/
 }
 
 #ifdef __MOUNTING__
