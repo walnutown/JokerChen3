@@ -406,8 +406,8 @@ vmmap_map(vmmap_t *map, vnode_t *file, uint32_t lopage, uint32_t npages,
         dbg(DBG_USER, "GRADING: I've made it!  May I have 2 points please!\n");
         dbg(DBG_USER, "GRADING: KASSERT(0 < npages), I'm going to invoke this assert right now!\n");
         KASSERT(0 < npages);
-        dbg(DBG_USER, "GRADING: KASSERT(!(~(PROT_NONE | PROT_READ | PROT_WRITE | PROT_EXEC) & prot)), I've made it!  May I have 2 points please!\n");
-        dbg(DBG_USER, "GRADING: I'm going to invoke this assert right now!\n");
+        dbg(DBG_USER, "GRADING: I've made it!  May I have 2 points please!\n");
+        dbg(DBG_USER, "GRADING: KASSERT(!(~(PROT_NONE | PROT_READ | PROT_WRITE | PROT_EXEC) & prot)), I'm going to invoke this assert right now!\n");
         KASSERT(!(~(PROT_NONE | PROT_READ | PROT_WRITE | PROT_EXEC) & prot));
         dbg(DBG_USER, "GRADING: I've made it!  May I have 2 points please!\n");
         dbg(DBG_USER, "GRADING: KASSERT((MAP_SHARED & flags) || (MAP_PRIVATE & flags)), I'm going to invoke this assert right now!\n");
