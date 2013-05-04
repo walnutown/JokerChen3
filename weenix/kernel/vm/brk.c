@@ -56,50 +56,56 @@
 int
 do_brk(void *addr, void **ret)
 {
+		dbg(DBG_VFS,"VM: Enter do_brk()\n");
 		if(addr==NULL)
 		{
 				ret = &(curproc->p_brk);
+				dbg(DBG_VFS,"VM: Leave do_brk(),addr==NULL\n");
 				return 0;
 		}
 		if(addr<curproc->p_start_brk || addr>(void *)USER_MEM_HIGH)
 		{
 				ret = NULL;
+				dbg(DBG_VFS,"VM: Leave do_brk(),addr invalid.\n");
 				return -ENOMEM;
 		}
 
 		vmmap_t *map = curproc->p_vmmap;
-		vmarea_t *vma;
+		vmarea_t *vmarea;
 		int status;
-		uint32_t start, end, npages;
+		uint32_t addr_start, addr_end, npages;
 
-		vma = vmmap_lookup(map, ADDR_TO_PN(PAGE_ALIGN_DOWN(curproc->p_brk)));
-		if(vma==NULL)
-				return -1;
+		vmarea = vmmap_lookup(map, ADDR_TO_PN(PAGE_ALIGN_DOWN(curproc->p_brk)));
+		if(vmarea==NULL)
+		{
+			dbg(DBG_VFS,"VM: Leave do_brk(), cannot find vmarea.\n");
+			return -1;
+		}
 		if(addr>curproc->p_brk)
 		{	
-				end = ADDR_TO_PN(PAGE_ALIGN_DOWN(addr));
-				start =  ADDR_TO_PN(PAGE_ALIGN_DOWN(curproc->p_brk)) + 1;
-				npages = end - start + 1;
-				status = vmmap_is_range_empty(map, start, npages);
+				addr_end = ADDR_TO_PN(PAGE_ALIGN_DOWN(addr));
+				addr_start =  ADDR_TO_PN(PAGE_ALIGN_DOWN(curproc->p_brk)) + 1;
+				status = vmmap_is_range_empty(map, addr_start, npages);
+				npages = addr_end - addr_start + 1;
 				if(status!=1)
 				{
 					ret = NULL;
 					return -ENOMEM;
 				}
-				vma->vma_end = end;
+				vmarea->vma_end = addr_end;
 		}
 		else 
 		{	
-				start = ADDR_TO_PN(PAGE_ALIGN_DOWN(addr));
-				end =  ADDR_TO_PN(PAGE_ALIGN_DOWN(curproc->p_brk));
-				npages = end - start + 1;
-				status = vmmap_is_range_empty(map, start, npages);
+				addr_start = ADDR_TO_PN(PAGE_ALIGN_DOWN(addr));
+				addr_end =  ADDR_TO_PN(PAGE_ALIGN_DOWN(curproc->p_brk));
+				npages = addr_end - addr_start + 1;
+				status = vmmap_is_range_empty(map, addr_start, npages);
 				if(status!=1)
 				{
 					ret = NULL;
 					return -ENOMEM;
 				}
-				vma->vma_end = start;
+				vmarea->vma_end = addr_start;
 		}
 		return 0;
         /*NOT_YET_IMPLEMENTED("VM: do_brk");
