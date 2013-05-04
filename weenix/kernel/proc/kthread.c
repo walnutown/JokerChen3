@@ -196,8 +196,28 @@ kthread_exit(void *retval)
 kthread_t *
 kthread_clone(kthread_t *thr)
 {
-        NOT_YET_IMPLEMENTED("VM: kthread_clone");
-        return NULL;
+        kthread_t *new;
+
+        new=(kthread_t*) slab_obj_alloc(kthread_allocator);
+        new->kt_kstack = alloc_stack();
+        context_setup(&(new->kt_ctx),NULL,0,NULL,new->kt_kstack,DEFAULT_STACK_SIZE,thr->kt_proc->p_pagedir); 
+
+        new->kt_proc = thr->kt_proc; 
+        new->kt_retval = thr->kt_retval;
+
+        new->kt_errno = thr->kt_errno;
+        new->kt_cancelled = thr->kt_cancelled;
+        new->kt_wchan = thr->kt_wchan;
+        
+        if(new->kt_wchan!=NULL)
+        {
+                list_insert_head(&(new->kt_wchan->tq_list), &(new->kt_qlink));
+                
+                new->kt_wchan->tq_size++;
+        }
+        new->kt_state = thr->kt_state;    
+        list_insert_tail(&(new->kt_proc->p_threads),&(new->kt_plink));
+        return new;
 }
 
 /*
