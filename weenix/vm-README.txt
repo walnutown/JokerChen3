@@ -1,8 +1,8 @@
 This test assignment is evenly splited in our group.
 Split:
-Yu Sun(sun812@usc.edu):			        100/3 		kmain.c syscall.c access.c brk.c proc.c
+Yu Sun(sun812@usc.edu):			        100/3 		pagefault.c mmap.c access.c brk.c proc.c
 Heguang Liu(heguangl@usc.edu):		    100/3		vammap.c anon.c vnode.c fork.c kthread.c
-Tao Hu(taohu@usc.edu):			        100/3		shadow.c syscall.c pagefault.c mmap.c
+Tao Hu(taohu@usc.edu):			        100/3		shadow.c syscall.c kmain.c syscall.c
 
 Bug report:
 We have implemented all 43 required functions for this assignment, the S5FS works perfectly and VM is partly working. We are able to enter userland and able to handle pagetable refresh, but there is a known bug when the system try to access the Page Number 0. As we cannot find corresponding vmarea, our code proc_kill the current process as required. 
