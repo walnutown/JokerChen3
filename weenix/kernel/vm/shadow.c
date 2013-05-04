@@ -52,6 +52,9 @@ static mmobj_ops_t shadow_mmobj_ops = {
 void
 shadow_init()
 {
+        dbg(DBG_USER, "GRADING: KASSERT(shadow_allocator), I'm going to invoke this assert right now!\n");
+        KASSERT(shadow_allocator);
+        dbg(DBG_USER, "GRADING: I've made it!  May I have 2 points please!\n");
         shadow_allocator = slab_allocator_create("shadow", sizeof(mmobj_t));
         /*NOT_YET_IMPLEMENTED("VM: shadow_init");*/
 }
@@ -88,7 +91,9 @@ static void
 shadow_ref(mmobj_t *o)
 {
         dbg(DBG_VFS,"VM: Enter shadow_ref(), reference_count =%d, nrespages=%d\n", o->mmo_refcount,o->mmo_nrespages);
+        dbg(DBG_USER, "GRADING: KASSERT(o && (0 < o->mmo_refcount) && (&shadow_mmobj_ops == o->mmo_ops)), I'm going to invoke this assert right now!\n");
         KASSERT(o && (0 < o->mmo_refcount) && (&shadow_mmobj_ops == o->mmo_ops));
+        dbg(DBG_USER, "GRADING: I've made it!  May I have 2 points please!\n");
         o->mmo_refcount++;
         dbg(DBG_VFS,"VM: Leave shadow_ref(), reference_count =%d, nrespages=%d\n", o->mmo_refcount,o->mmo_nrespages);
         /*NOT_YET_IMPLEMENTED("VM: shadow_ref");*/
@@ -105,6 +110,10 @@ shadow_ref(mmobj_t *o)
 static void
 shadow_put(mmobj_t *o)
 {
+        dbg(DBG_USER, "GRADING: KASSERT(o && (0 < o->mmo_refcount) && (&shadow_mmobj_ops == o->mmo_ops)), I'm going to invoke this assert right now!\n");
+        KASSERT(o && (0 < o->mmo_refcount) && (&shadow_mmobj_ops == o->mmo_ops));
+        dbg(DBG_USER, "GRADING: I've made it!  May I have 2 points please!\n");
+
         o->mmo_refcount--;
         if(o->mmo_refcount > o->mmo_nrespages)
         {
@@ -215,8 +224,12 @@ shadow_lookuppage(mmobj_t *o, uint32_t pagenum, int forwrite, pframe_t **pf)
 static int
 shadow_fillpage(mmobj_t *o, pframe_t *pf)
 {
+        dbg(DBG_USER, "GRADING: KASSERT(pframe_is_busy(pf)), I'm going to invoke this assert right now!\n");
         KASSERT(pframe_is_busy(pf));
+        dbg(DBG_USER, "GRADING: I've made it!  May I have 2 points please!\n");
+        dbg(DBG_USER, "GRADING: KASSERT(!pframe_is_pinned(pf)), I'm going to invoke this assert right now!\n");
         KASSERT(!pframe_is_pinned(pf));
+        dbg(DBG_USER, "GRADING: I've made it!  May I have 2 points please!\n");
         dbg(DBG_VFS,"Enter shadow_fillpage(), destinaiton object: 0x%p, pf->pf_pagenum: %d\n",o,pf->pf_pagenum);
         pframe_t *pframe;
         /* look for the source page frame */
